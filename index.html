@@ -634,7 +634,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
         <button class="tab active" onclick="switchMatTab('text',this)">✍️ Type Notes</button>
         <button class="tab" onclick="switchMatTab('file',this)">📎 Upload File</button>
       </div>
-      <div id="mat-tab-text">
+      <div id="mat-tab-text" class="hidden">
         <div class="form-group"><label class="label">Title *</label><input type="text" id="mat-title" placeholder="e.g., Chapter 5: Cognitive Psychology"></div>
         <div class="form-group"><label class="label">Subject / Course</label><input type="text" id="mat-subject" placeholder="e.g., Psychology 101"></div>
         <div class="form-group"><label class="label">Class Date</label>
@@ -1183,17 +1183,23 @@ function addMaterial(){
       pushNotif(studentEmail,{type:'material',icon:'📚',title:`New material: ${mat.title}`,body:`Your teacher shared a new material in ${CLASS_DB[sharedCode].name}.`,matId:mat.id,classCode:sharedCode});
     });
   }
-  closeModal('add-material-modal');renderMaterials();populateSelects();
-  if(SESSION.role==='teacher')renderTeacherClasses();
+  closeModal('add-material-modal');
+  populateSelects();
+  renderMaterials();
+  if(SESSION.role==='teacher') renderTeacherClasses();
   toast('Material added!','success');
 }
 
 function formatDate(iso){if(!iso)return'';const[y,m,dd]=iso.split('-');return`${dd} ${DR_MONTHS[parseInt(m)-1]||m} ${y.slice(2)}`;}
 function renderMaterials(){
-  const d=ud();const list=document.getElementById('materials-list');
-  if(!d.materials.length){list.innerHTML=`<div class="card"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg><h3>No materials yet</h3><p>Add your first reading or upload a file</p></div></div>`;return;}
+  const d=ud();
+  // Deduplicate by id before rendering
+  const seen=new Set();
+  const mats=d.materials.filter(m=>{if(seen.has(m.id))return false;seen.add(m.id);return true;});
+  const list=document.getElementById('materials-list');
+  if(!mats.length){list.innerHTML=`<div class="card"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg><h3>No materials yet</h3><p>Add your first reading or upload a file</p></div></div>`;return;}
   const STC={uploaded:'badge-slate',preparing:'badge-blue',ready:'badge-emerald',completed:'badge-violet'};
-  list.innerHTML=`<div class="card">${d.materials.map(m=>`<div class="material-item"><div style="width:42px;height:42px;background:${m.source==='class'?'var(--v50)':m.source==='file'?'var(--b50)':'var(--v50)'};border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${m.source==='file'?'#2563eb':'#7c3aed'}" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px"><span style="font-weight:700">${m.title}</span><span class="badge ${STC[m.status||'uploaded']}">${m.status||'uploaded'}</span>${m.source==='class'?'<span class="badge badge-violet">📋 From Teacher</span>':''}</div>${m.subject?`<p style="font-size:13px;color:var(--s500)">${m.subject}</p>`:''}${m.class_date?`<p style="font-size:12px;color:var(--s400)">📅 ${formatDate(m.class_date)}</p>`:''}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><button class="btn btn-outline btn-sm" onclick="prepMaterial('${m.id}')">Prepare →</button>${m.source!=='class'?`<button class="btn btn-ghost btn-icon btn-sm" onclick="deleteMaterial('${m.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>`:''}</div></div>`).join('')}</div>`;
+  list.innerHTML=`<div class="card">${mats.map(m=>`<div class="material-item"><div style="width:42px;height:42px;background:${m.source==='class'?'var(--v50)':m.source==='file'?'var(--b50)':'var(--v50)'};border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${m.source==='file'?'#2563eb':'#7c3aed'}" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px"><span style="font-weight:700">${m.title}</span><span class="badge ${STC[m.status||'uploaded']}">${m.status||'uploaded'}</span>${m.source==='class'?'<span class="badge badge-violet">📋 From Teacher</span>':''}</div>${m.subject?`<p style="font-size:13px;color:var(--s500)">${m.subject}</p>`:''}${m.class_date?`<p style="font-size:12px;color:var(--s400)">📅 ${formatDate(m.class_date)}</p>`:''}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><button class="btn btn-outline btn-sm" onclick="prepMaterial('${m.id}')">Prepare →</button>${m.source!=='class'?`<button class="btn btn-ghost btn-icon btn-sm" onclick="deleteMaterial('${m.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>`:''}</div></div>`).join('')}</div>`;
 }
 function deleteMaterial(id){const d=ud();d.materials=d.materials.filter(m=>m.id!==id);renderMaterials();populateSelects();toast('Deleted');}
 function prepMaterial(id){navigate('PreClassPrep');setTimeout(()=>{document.getElementById('prep-material-select').value=id;loadPrepMaterial();},50);}
@@ -1203,12 +1209,7 @@ function populateSelects(){
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;el.innerHTML='<option value="">Choose material...</option>'+d.materials.map(m=>`<option value="${m.id}"${m.id===cur?' selected':''}>${m.title}</option>`).join('');
   });
-  // Teacher: populate share selects
-  if(SESSION.role==='teacher'){
-    document.getElementById('mat-share-group').style.display='block';
-    document.getElementById('mat-file-share-group').style.display='block';
-    populateShareSelects('');
-  }
+  // Teacher share selects: only show when modal opens, not here
 }
 
 // ══ PREP ══
@@ -1471,7 +1472,15 @@ document.addEventListener('click',e=>{
   const bell=document.getElementById('notif-bell-btn');
   if(panel&&bell&&!panel.contains(e.target)&&!bell.contains(e.target))panel.classList.add('hidden');
 });
-function openModal(id){document.getElementById(id).classList.add('open');}
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  // Show teacher share fields only when add-material modal opens
+  if(id==='add-material-modal' && SESSION.role==='teacher'){
+    document.getElementById('mat-share-group').style.display='block';
+    document.getElementById('mat-file-share-group').style.display='block';
+    populateShareSelects('');
+  }
+}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.addEventListener('click',e=>{document.querySelectorAll('.modal-overlay').forEach(o=>{if(e.target===o)o.classList.remove('open');});});
 function toast(msg,type=''){const c=document.getElementById('toast-container');const el=document.createElement('div');el.className='toast'+(type?' '+type:'');el.innerHTML=`<span>${type==='success'?'✓':type==='error'?'✕':'ℹ'}</span> ${msg}`;c.appendChild(el);setTimeout(()=>{el.style.opacity='0';el.style.transform='translateY(20px)';el.style.transition='all .3s';setTimeout(()=>el.remove(),300);},2800);}
