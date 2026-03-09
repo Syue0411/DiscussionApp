@@ -1702,8 +1702,40 @@ function loadReflection(){const id=document.getElementById('reflection-material-
 function setSpeak(val){reflectionDidSpeak=val;document.getElementById('speak-yes-btn').className='speak-btn speak-yes'+(val?' selected':'');document.getElementById('speak-no-btn').className='speak-btn speak-no'+(!val?' selected':'');document.getElementById('speak-details').classList.toggle('hidden',!val);}
 function setSatisfaction(val){reflectionSat=val;Array.from(document.getElementById('satisfaction-stars').children).forEach((s,i)=>{s.style.opacity=i<val?'1':'0.3';});document.getElementById('sat-label').textContent=['','😞 Poor','😐 Fair','🙂 Okay','😊 Good','🌟 Great!'][val]||'';}
 function saveReflection(){const d=ud();const id=document.getElementById('reflection-material-select').value;if(!id){toast('Please select a material','error');return;}const r={id:'r'+Date.now(),material_id:id,did_speak:reflectionDidSpeak,times_spoken:parseInt(document.getElementById('times-spoken').value)||0,what_worked:document.getElementById('what-worked').value,challenges:document.getElementById('challenges').value,improvement_notes:document.getElementById('improvement-notes').value,overall_satisfaction:reflectionSat};const ei=d.reflections.findIndex(x=>x.material_id===id);if(ei>=0)d.reflections[ei]=r;else d.reflections.push(r);toast('Reflection saved!','success');}
-function getAIInsights(){const btn=document.getElementById('get-insights-btn');btn.textContent='⏳…';btn.disabled=true;setTimeout(()=>{document.getElementById('insight-text').textContent=reflectionDidSpeak?"Great job speaking up! Every contribution builds confidence. Try using 'I'd like to add to that…' as a low-stakes entry next time. 💪":"Not speaking this time is completely okay. Identify one key moment in the next class where you can share a prepared thought. You've got this! 🌱";document.getElementById('ai-insights-output').classList.remove('hidden');btn.textContent='✨ Get AI Insights';btn.disabled=false;},1200);}
+async function getAIInsights(){
+  const matId = document.getElementById('reflection-material-select').value;
+  const d = ud();
+  const mat = d.materials.find(m => m.id === matId);
+  const btn = document.getElementById('get-insights-btn');
+  btn.textContent = '⏳…'; btn.disabled = true;
 
+  const whatWorked = document.getElementById('what-worked').value.trim();
+  const challenges = document.getElementById('challenges').value.trim();
+  const improvement = document.getElementById('improvement-notes').value.trim();
+  const spoke = reflectionDidSpeak;
+  const times = document.getElementById('times-spoken').value || 0;
+  const sat = reflectionSat;
+
+  const prompt = `A student just completed a class discussion and filled in this reflection:
+
+Material: "${mat?.title || 'Unknown'}"
+Did they speak? ${spoke ? `Yes, ${times} time(s)` : 'No'}
+What worked: "${whatWorked || 'Not filled in'}"
+Challenges: "${challenges || 'Not filled in'}"
+What to improve: "${improvement || 'Not filled in'}"
+Satisfaction rating: ${sat}/5
+
+Write 2-3 sentences of warm, specific, actionable coaching feedback. 
+- If they spoke: acknowledge it specifically and suggest one concrete next step.
+- If they didn't speak: normalise it gently, give ONE very small low-risk action for next class.
+Keep it encouraging, practical, and under 60 words. No bullet points.`;
+
+  const insight = await callClaude(prompt, '', 200);
+  document.getElementById('insight-text').textContent = insight || 
+    "Every class is a new opportunity. Try preparing one short comment before the next session — even one sentence builds momentum!";
+  document.getElementById('ai-insights-output').classList.remove('hidden');
+  btn.textContent = '✨ Get AI Insights'; btn.disabled = false;
+}
 // ══════════════════════════════════════════
 // TRANSLATOR
 // ══════════════════════════════════════════
