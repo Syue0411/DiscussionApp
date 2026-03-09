@@ -268,11 +268,11 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 <!-- ══ LOGIN ══ -->
 <div id="view-login" class="hidden">
   <div class="auth-page"><div class="auth-box">
-    <div class="auth-logo"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h2 style="font-size:22px;font-weight:800;margin-top:8px">Welcome back</h2></div>
+    <div class="auth-logo"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h2 style="font-size:22px;font-weight:800;margin-top:8px;text-align:center">Welcome back</h2></div>
     <div class="form-group"><label class="label">Email</label><input type="email" id="login-email" placeholder="you@example.com"></div>
     <div class="form-group"><label class="label">Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
     <div id="login-error" class="hidden" style="background:#fee2e2;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;margin-bottom:12px"></div>
-    <button class="btn btn-primary w-full btn-lg" onclick="doLogin()">Sign In</button>
+    <button class="btn btn-primary w-full btn-lg" onclick="doLogin()" style="justify-content:center">Sign In</button>
     <div class="auth-switch">No account? <span onclick="showView('register')">Create one free</span></div>
     <div class="auth-switch mt-2"><span onclick="showView('landing')">← Back</span></div>
     <div style="margin-top:20px;background:var(--v50);border-radius:10px;padding:14px;font-size:12.5px;color:var(--s600)">
@@ -683,6 +683,13 @@ const PREP_STATES = {}; // keyed by matId
 
 // TTS state
 let currentlyPlayingId = null, playIntervals = {}, msgGenderMap = {};
+let _voicesReady = false;
+function ensureVoicesReady(cb) {
+  if(!window.speechSynthesis){cb();return;}
+  const vs=window.speechSynthesis.getVoices();
+  if(vs.length){_voicesReady=true;cb();}
+  else{window.speechSynthesis.onvoiceschanged=()=>{_voicesReady=true;cb();};}
+}
 
 // Notifications state
 let notifFilter = 'all';
@@ -1034,14 +1041,13 @@ async function loadPrepMaterial() {
 }
 
 async function extractConcepts(mat) {
-  const content = (mat.content || mat.notes || '').substring(0, 3000);
+  const content = (mat.content || mat.notes || '').substring(0, 4000);
   if (!content) return [];
   try {
     const raw = await callClaude(
-      `Analyse this academic material and extract 3-5 key concepts a student should understand before a seminar:\n\nTitle: ${mat.title}\nContent: ${content}\n\nReturn ONLY a valid JSON array with no markdown fences:\n[{"concept":"Name","definition":"1-2 sentence plain definition","why_important":"1 sentence why it matters in discussion"}]`,
-      'You are an academic concept extractor. Return only valid JSON, no markdown.', 900
+      `You are an academic reading assistant. Read this material carefully and extract 4-6 key concepts that are SPECIFIC to this text.\n\nTitle: ${mat.title}\nContent: ${content}\n\nReturn ONLY a valid JSON array with no markdown fences, no preamble:\n[{"concept":"Exact term from the text","definition":"1-2 sentence plain English definition based on the text","why_important":"1 sentence on why this concept matters for discussion of THIS material"}]\n\nOnly extract concepts actually present in the text above. Do not invent generic concepts.`,
+      'Return only valid JSON array. No markdown, no explanation.', 1200
     );
-    // Strip any accidental markdown
     const clean = raw.replace(/```json|```/g,'').trim();
     const parsed = JSON.parse(clean);
     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -1254,7 +1260,9 @@ async function startRehearsal() {
   if(!matId){toast('Please select a material','error');return;}
   const mat=d.materials.find(m=>m.id===matId);if(!mat)return;
   const numC=parseInt(document.getElementById('rehearsal-num').value)||3;
-  sessionClassmates=[...CLASSMATES_POOL].sort(()=>.5-Math.random()).slice(0,numC);
+  // Lock classmates to exactly the number selected, using the already-previewed ones
+  sessionClassmates=sessionClassmates.slice(0,numC);
+  if(sessionClassmates.length!==numC) sessionClassmates=[...CLASSMATES_POOL].sort(()=>.5-Math.random()).slice(0,numC);
   sessionMaterialTitle=mat.title;
   sessionMaterialContext=`Title: ${mat.title}\nSubject: ${mat.subject||'General'}\nContent: ${(mat.content||mat.notes||'').substring(0,2000)}\nKey Concepts: ${(mat.ai_concepts||[]).map(c=>typeof c==='string'?c:c.concept).join(', ')||'none'}`;
   lastSpeakerIdx=-1;
@@ -1263,13 +1271,14 @@ async function startRehearsal() {
   const loadMsgs=['Analysing key concepts…','Preparing discussion questions…','Almost ready…'];
   let li=0;const iv=setInterval(()=>{li++;const el=document.getElementById('loading-msg');if(el&&li<loadMsgs.length)el.textContent=loadMsgs[li];},900);
   let opening='';
-  try{opening=await callClaude(`You are ${sessionClassmates[0].name}, a university seminar student. You just read:\n${sessionMaterialContext}\n\nOpen the discussion with a specific comment or question. 2-3 sentences max. End with exactly ONE question. No bullets.`);}
+  const names=sessionClassmates.map(c=>c.name).join(', ');
+  try{opening=await callClaude(`You are ${sessionClassmates[0].name}, one of ${numC} students (${names}) in a university seminar. You just read:\n${sessionMaterialContext}\n\nOpen the discussion with a specific comment or question about the material. 2-3 sentences max. End with exactly ONE question. No bullets.`);}
   catch(e){opening=`I found "${mat.title}" really thought-provoking. What do you think is the most important argument?`;}
   clearInterval(iv);
   document.getElementById('rehearsal-loading').classList.add('hidden');
   document.getElementById('rehearsal-session').classList.remove('hidden');
   document.getElementById('session-title').textContent=mat.title;
-  document.getElementById('session-classmates-label').textContent=sessionClassmates.map(c=>c.name).join(', ');
+  document.getElementById('session-classmates-label').textContent=`With: ${sessionClassmates.map(c=>c.name).join(', ')}`;
   document.getElementById('chat-area').innerHTML='';
   rehearsalTimeLeft=300;liveTranscript='';updateTimer();
   if(rehearsalTimer)clearInterval(rehearsalTimer);
@@ -1277,7 +1286,8 @@ async function startRehearsal() {
   const mid='ai'+Date.now();
   document.getElementById('chat-area').appendChild(createAIBubble(sessionClassmates[0],opening,mid));
   scrollChat();lastSpeakerIdx=0;
-  setTimeout(()=>togglePlay(mid,opening),400);
+  // Auto-play opening after voices load
+  ensureVoicesReady(()=>togglePlay(mid,opening));
 }
 function pickNextSpeaker(){let i;do{i=Math.floor(Math.random()*sessionClassmates.length);}while(sessionClassmates.length>1&&i===lastSpeakerIdx);lastSpeakerIdx=i;return sessionClassmates[i];}
 async function aiRespond(interpreted){
@@ -1363,11 +1373,45 @@ function togglePlay(msgId,text){
   const col=pbtn?.querySelector('svg')?.getAttribute('fill')||'#7c3aed';
   const playI=`<svg width="14" height="14" viewBox="0 0 24 24" fill="${col}" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
   const pauseI=`<svg width="14" height="14" viewBox="0 0 24 24" fill="${col}" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
-  if(currentlyPlayingId===msgId){window.speechSynthesis.cancel();clearInterval(playIntervals[msgId]);bars.forEach(b=>b.classList.remove('active'));card?.classList.remove('playing');if(pbtn)pbtn.innerHTML=playI;if(dur)dur.textContent='▶ Listen';currentlyPlayingId=null;return;}
-  if(currentlyPlayingId){window.speechSynthesis.cancel();clearInterval(playIntervals[currentlyPlayingId]);document.querySelectorAll('#wave-'+currentlyPlayingId+' .wave-bar').forEach(b=>b.classList.remove('active'));document.getElementById('apc-'+currentlyPlayingId)?.classList.remove('playing');document.getElementById('dur-'+currentlyPlayingId)&&(document.getElementById('dur-'+currentlyPlayingId).textContent='▶ Listen');document.getElementById('pbtn-'+currentlyPlayingId)&&(document.getElementById('pbtn-'+currentlyPlayingId).innerHTML=playI);}
-  currentlyPlayingId=msgId;card?.classList.add('playing');if(pbtn)pbtn.innerHTML=pauseI;if(dur)dur.textContent='⏸ Playing…';
+  if(currentlyPlayingId===msgId){
+    window.speechSynthesis.cancel();
+    clearInterval(playIntervals[msgId]);
+    bars.forEach(b=>b.classList.remove('active'));
+    card?.classList.remove('playing');
+    if(pbtn)pbtn.innerHTML=playI;
+    if(dur)dur.textContent='▶ Listen';
+    currentlyPlayingId=null;return;
+  }
+  // Stop any currently playing
+  if(currentlyPlayingId){
+    window.speechSynthesis.cancel();
+    clearInterval(playIntervals[currentlyPlayingId]);
+    document.querySelectorAll('#wave-'+currentlyPlayingId+' .wave-bar').forEach(b=>b.classList.remove('active'));
+    document.getElementById('apc-'+currentlyPlayingId)?.classList.remove('playing');
+    const oldDur=document.getElementById('dur-'+currentlyPlayingId);
+    if(oldDur)oldDur.textContent='▶ Listen';
+    const oldPbtn=document.getElementById('pbtn-'+currentlyPlayingId);
+    if(oldPbtn){const oc=oldPbtn.querySelector('svg')?.getAttribute('fill')||'#7c3aed';oldPbtn.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="${oc}" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;}
+    currentlyPlayingId=null;
+  }
+  currentlyPlayingId=msgId;
+  card?.classList.add('playing');
+  if(pbtn)pbtn.innerHTML=pauseI;
+  if(dur)dur.textContent='⏸ Playing…';
   playIntervals[msgId]=setInterval(()=>bars.forEach(b=>b.classList.toggle('active',Math.random()>.5)),120);
-  speakText(text,g,()=>{clearInterval(playIntervals[msgId]);bars.forEach(b=>b.classList.remove('active'));if(currentlyPlayingId===msgId){card?.classList.remove('playing');if(pbtn)pbtn.innerHTML=playI;if(dur)dur.textContent='▶ Listen';currentlyPlayingId=null;}});
+  // Use ensureVoicesReady to guarantee TTS fires
+  ensureVoicesReady(()=>{
+    speakText(text,g,()=>{
+      clearInterval(playIntervals[msgId]);
+      bars.forEach(b=>b.classList.remove('active'));
+      if(currentlyPlayingId===msgId){
+        card?.classList.remove('playing');
+        if(pbtn)pbtn.innerHTML=playI;
+        if(dur)dur.textContent='▶ Listen';
+        currentlyPlayingId=null;
+      }
+    });
+  });
 }
 function revealText(msgId){document.getElementById('rtext-'+msgId)?.classList.toggle('hidden');}
 function speakText(text,gender,onEnd){
@@ -1433,37 +1477,57 @@ async function generateAIPhrases(){
   const btn=document.getElementById('gen-phrases-btn'); btn.disabled=true; btn.textContent='⏳ Extracting…';
   document.getElementById('phrases-gen-loading').classList.remove('hidden');
   document.getElementById('phrases-content').classList.add('hidden');
-  const content=(mat.content||mat.notes||'').substring(0,3000);
+  const content=(mat.content||mat.notes||'').substring(0,4000);
   const store=getMatPhrasesStore(currentPhraseMatId);
 
-  // 1. Extract key concepts with definitions + example sentence
+  // 1. Extract key concepts WITH example discussion phrases
   try{
     const raw=await callClaude(
-      `From this academic material, extract 5-8 key concepts or terms a student should understand and be able to use in discussion.\n\nTitle: ${mat.title}\nContent: ${content}\n\nReturn ONLY a valid JSON array (no markdown):\n[{"term":"Term","definition":"Plain 1-sentence definition.","example":"A natural sentence using this term in a discussion context."}]`,
-      'You are an academic vocabulary extractor. Return only valid JSON.', 1000
+      `You are an academic language coach. Read this material carefully and extract 5-8 key concepts or terms that are SPECIFIC to this text.\n\nTitle: ${mat.title}\nContent: ${content}\n\nFor each concept, also write a realistic discussion sentence a student could say in a seminar using that exact term.\n\nReturn ONLY a valid JSON array (no markdown, no preamble):\n[{"term":"Exact term from the text","definition":"Plain 1-sentence definition based on the text.","example":"A natural sentence a student might say in discussion using this term."}]\n\nOnly extract terms actually present in the text. Do not invent generic academic terms.`,
+      'Return only valid JSON array. No markdown, no explanation.', 1400
     );
     const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
     if(Array.isArray(parsed)&&parsed.length) store.concepts=parsed;
   }catch(e){ store.concepts=[]; }
 
-  // 2. Extract standalone vocab list (single words/short phrases)
+  // 2. Extract standalone vocab list from the actual text
   try{
     const raw2=await callClaude(
-      `List 8-12 important academic vocabulary words or short phrases from:\nTitle: ${mat.title}\nContent: ${content}\nReturn ONLY a JSON array of strings. No markdown.`,'',400
+      `Read this academic material and list 10-15 important vocabulary words or short phrases that appear in the text and are specific to its subject matter.\n\nTitle: ${mat.title}\nContent: ${content}\n\nReturn ONLY a JSON array of strings. No markdown, no preamble. Example: ["term1","term2"]`,
+      'Return only valid JSON array of strings. No markdown.', 500
     );
     store.vocab=JSON.parse(raw2.replace(/```json|```/g,'').trim());
   }catch(e){ store.vocab=[]; }
 
-  // Also sync to mat for use elsewhere
-  mat.ai_concepts = mat.ai_concepts || store.concepts.map(c=>({concept:c.term,definition:c.definition,why_important:''}));
+  // 3. Generate material-specific phrase TEMPLATES for each category
+  try{
+    const conceptsList=(store.concepts||[]).map(c=>c.term).join(', ');
+    const vocabList=(store.vocab||[]).slice(0,8).join(', ');
+    const raw3=await callClaude(
+      `You are a discussion coach helping students use language from their reading.\n\nMaterial: "${mat.title}"\nKey concepts from the text: ${conceptsList}\nKey vocab from the text: ${vocabList}\n\nGenerate 2 natural discussion sentence starters for each of these 7 categories. Each sentence should naturally incorporate vocabulary or concepts from THIS specific material where appropriate.\n\nCategories: starting, agreeing, building_on, disagreeing, clarifying, evidence, concluding\n\nReturn ONLY valid JSON (no markdown):\n{"starting":["phrase1","phrase2"],"agreeing":["phrase1","phrase2"],"building_on":["phrase1","phrase2"],"disagreeing":["phrase1","phrase2"],"clarifying":["phrase1","phrase2"],"evidence":["phrase1","phrase2"],"concluding":["phrase1","phrase2"]}`,
+      'Return only valid JSON object. No markdown.', 1000
+    );
+    const catMap={starting:'start',agreeing:'agree',building_on:'build',disagreeing:'disagree',clarifying:'clarify',evidence:'evidence',concluding:'conclude'};
+    const parsed3=JSON.parse(raw3.replace(/```json|```/g,'').trim());
+    Object.entries(parsed3).forEach(([key,phrases])=>{
+      const catId=catMap[key]; if(!catId) return;
+      // Prepend material-specific AI phrases before the generic templates
+      const existing=store.templatePhrases[catId]||[];
+      const aiPhrases=phrases.map(t=>({text:t,starred:false,custom:false,ai:true}));
+      store.templatePhrases[catId]=[...aiPhrases,...existing.filter(p=>!p.ai)];
+    });
+  }catch(e){}
+
+  // Sync ai_concepts to mat for Prep stage
+  mat.ai_concepts = store.concepts.map(c=>({concept:c.term,definition:c.definition,why_important:'Key term from the material relevant to seminar discussion.'}));
   mat.ai_vocab = store.vocab;
 
   document.getElementById('phrases-gen-loading').classList.add('hidden');
   document.getElementById('phrases-content').classList.remove('hidden');
-  btn.disabled=false; btn.textContent='✨ Extract Concepts & Vocab';
+  btn.disabled=false; btn.textContent='✨ Re-extract';
   phraseView='concepts';
   renderPhrasesTabs(); renderPhrasesMain();
-  toast('Concepts & vocabulary extracted!','success');
+  toast('Concepts & vocabulary extracted from material!','success');
 }
 
 function renderPhrasesTabs(){
