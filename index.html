@@ -886,17 +886,34 @@ function toast(msg, type='') {
 // ══════════════════════════════════════════
 // CLAUDE API
 // ══════════════════════════════════════════
-async function callClaude(prompt, system='', maxTok=600) {
-  const body = {model:'claude-sonnet-4-20250514', max_tokens:maxTok, messages:[{role:'user', content:prompt}]};
-  if (system) body.system = system;
+async function callClaude(prompt, system = '', maxTok = 600) {
+  const apiUrl = '/api/chat';
+
+  const payload = {
+    model: 'claude-3-5-sonnet-20240620',
+    max_tokens: maxTok,
+    messages: [{ role: 'user', content: prompt }]
+  };
+
+  if (system) {
+    payload.system = system;
+  }
+
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
-    const data = await res.json();
+
+    const data = await response.json();
     return data.content?.[0]?.text || '';
-  } catch(e) { return ''; }
+  } catch (error) {
+    console.error('Error:', error);
+    return '';
+  }
 }
+
 async function claudeChat(history, system, maxTok = 300) {
   const apiUrl = '/api/chat';
 
@@ -910,9 +927,7 @@ async function claudeChat(history, system, maxTok = 300) {
   try {
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
