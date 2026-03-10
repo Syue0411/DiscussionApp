@@ -1919,8 +1919,177 @@ function addReminder(){
 // ══════════════════════════════════════════
 function genCode(){return Math.random().toString(36).substring(2,8).toUpperCase();}
 function createClass(){const name=document.getElementById('new-class-name').value.trim();if(!name){toast('Enter a class name','error');return;}const code=genCode();CLASS_DB[code]={id:'cls'+Date.now(),code,name,desc:document.getElementById('new-class-desc').value.trim(),teacherEmail:SESSION.email,students:[],materials:[]};document.getElementById('new-class-name').value='';document.getElementById('new-class-desc').value='';closeModal('create-class-modal');renderTeacherClasses();toast('Class created! Code: '+code,'success');}
-function joinClass(){const code=document.getElementById('join-code-input').value.trim().toUpperCase();const err=document.getElementById('join-error');err.classList.add('hidden');if(code.length!==6){err.textContent='Enter a 6-character code.';err.classList.remove('hidden');return;}const cls=CLASS_DB[code];if(!cls){err.textContent='Class not found.';err.classList.remove('hidden');return;}const d=ud();if(d.joinedClasses.includes(code)){err.textContent='Already joined.';err.classList.remove('hidden');return;}d.joinedClasses.push(code);if(!cls.students.includes(SESSION.email))cls.students.push(SESSION.email);cls.materials.forEach(m=>{if(!d.materials.find(x=>x.id===m.id))d.materials.unshift({...m,source:'class',classCode:code});});document.getElementById('join-code-input').value='';closeModal('join-class-modal');populateSelects();renderMyClass();toast('Joined "'+cls.name+'"!','success');}
-function renderTeacherClasses(){const myCls=Object.values(CLASS_DB).filter(c=>c.teacherEmail===SESSION.email);const el=document.getElementById('teacher-classes-list');if(!myCls.length){el.innerHTML=`<div class="card"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><h3>No classes yet</h3></div></div>`;return;}el.innerHTML=myCls.map(cls=>`<div class="class-card mb-4"><div class="flex items-center justify-between mb-3 flex-wrap gap-2"><div><h2 style="font-size:18px;font-weight:800">${cls.name}</h2>${cls.desc?`<p style="font-size:13px;color:var(--s500)">${cls.desc}</p>`:''}</div><button class="btn btn-red btn-sm" onclick="deleteClass('${cls.code}')">Delete</button></div><div class="flex items-center gap-4 flex-wrap mb-3"><div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--s400);margin-bottom:5px">Class Code</div><div class="class-code" onclick="copyCode('${cls.code}')">${cls.code} 📋</div></div><div style="display:flex;gap:12px;margin-left:auto"><div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--v600)">${cls.students.length}</div><div style="font-size:12px;color:var(--s500)">Students</div></div><div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--b600)">${cls.materials.length}</div><div style="font-size:12px;color:var(--s500)">Materials</div></div></div></div><div class="flex gap-2"><button class="btn btn-primary btn-sm" onclick="uploadToClass('${cls.code}')">+ Upload Material</button></div></div>`).join('');}
+function syncClassMaterials(code){
+  const cls=CLASS_DB[code]; if(!cls) return;
+  const d=ud();
+  cls.materials.forEach(m=>{
+    if(!d.materials.find(x=>x.id===m.id)){
+      d.materials.push({...m, source:'class', classCode:code});
+    }
+  });
+}
+function joinClass(){
+  const code=document.getElementById('join-code-input').value.trim().toUpperCase();
+  const err=document.getElementById('join-error');
+  err.classList.add('hidden');
+  if(code.length!==6){err.textContent='Enter a 6-character code.';err.classList.remove('hidden');return;}
+  const cls=CLASS_DB[code];
+  if(!cls){err.textContent='Class not found.';err.classList.remove('hidden');return;}
+  const d=ud();
+  if(d.joinedClasses.includes(code)){err.textContent='Already joined.';err.classList.remove('hidden');return;}
+  d.joinedClasses.push(code);
+  if(!cls.students.includes(SESSION.email))cls.students.push(SESSION.email);
+  syncClassMaterials(code);
+  document.getElementById('join-code-input').value='';
+  closeModal('join-class-modal');
+  populateSelects();renderMyClass();
+  toast('Joined "'+cls.name+'"!','success');
+}
+function renderMyClass(){
+  const d=ud();
+  const el=document.getElementById('my-class-content');
+  if(!d.joinedClasses.length){
+    document.getElementById('my-class-name').textContent='No Class Joined';
+    el.innerHTML=`<div class="card"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="9" cy="7" r="4"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/></svg><h3>No class joined</h3><p>Ask your teacher for a code</p><button class="btn btn-primary mt-4" onclick="openModal('join-class-modal')">+ Join Class</button></div></div>`;
+    return;
+  }
+  const myCls=d.joinedClasses.map(code=>CLASS_DB[code]).filter(Boolean);
+  document.getElementById('my-class-name').textContent=myCls.length===1?myCls[0].name:myCls.length+' Classes';
+  d.joinedClasses.forEach(code=>syncClassMaterials(code));
+  populateSelects();
+  el.innerHTML=myCls.map(cls=>`
+    <div class="class-card mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h2 style="font-size:18px;font-weight:800">${cls.name}</h2>
+        <button class="btn btn-ghost btn-sm" onclick="leaveClass('${cls.code}')">Leave</button>
+      </div>
+      ${cls.materials.length
+        ? cls.materials.map(m=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--v50);border-radius:10px;margin-bottom:8px;border:1px solid var(--v100)">
+            <div style="font-weight:700;font-size:14px">${m.title}</div>
+            <button class="btn btn-primary btn-sm" onclick="prepMaterial('${m.id}')">Prepare →</button>
+          </div>`).join('')
+        : `<p style="color:var(--s400);font-size:13px">No materials yet.</p>`}
+    </div>`).join('');
+}
+function renderTeacherClasses(){
+  const myCls=Object.values(CLASS_DB).filter(c=>c.teacherEmail===SESSION.email);
+  const el=document.getElementById('teacher-classes-list');
+  if(!myCls.length){
+    el.innerHTML=`<div class="card"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><h3>No classes yet</h3></div></div>`;
+    return;
+  }
+  el.innerHTML=myCls.map(cls=>`
+    <div class="class-card mb-4">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <h2 style="font-size:18px;font-weight:800">${cls.name}</h2>
+          ${cls.desc?`<p style="font-size:13px;color:var(--s500)">${cls.desc}</p>`:''}
+        </div>
+        <button class="btn btn-red btn-sm" onclick="deleteClass('${cls.code}')">Delete</button>
+      </div>
+      <div class="flex items-center gap-4 flex-wrap mb-4">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--s400);margin-bottom:5px">Class Code</div>
+          <div class="class-code" onclick="copyCode('${cls.code}')">${cls.code} 📋</div>
+        </div>
+        <div style="display:flex;gap:12px;margin-left:auto">
+          <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--v600)">${cls.students.length}</div><div style="font-size:12px;color:var(--s500)">Students</div></div>
+          <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--b600)">${cls.materials.length}</div><div style="font-size:12px;color:var(--s500)">Materials</div></div>
+        </div>
+      </div>
+      <div class="flex gap-2 mb-4">
+        <button class="btn btn-primary btn-sm" onclick="uploadToClass('${cls.code}')">+ Upload Material</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleStudentProgress('${cls.code}')">👥 View Student Progress</button>
+      </div>
+      <div id="progress-panel-${cls.code}" class="hidden">
+        ${renderStudentProgressPanel(cls)}
+      </div>
+    </div>`).join('');
+}
+function toggleStudentProgress(code){
+  const el=document.getElementById('progress-panel-'+code);
+  if(!el)return;
+  const isHidden=el.classList.contains('hidden');
+  el.classList.toggle('hidden',!isHidden);
+  if(isHidden){
+    const cls=CLASS_DB[code]; if(!cls)return;
+    el.innerHTML=renderStudentProgressPanel(cls);
+  }
+}
+
+function renderStudentProgressPanel(cls){
+  if(!cls.students.length){
+    return `<div style="background:var(--s50);border-radius:10px;padding:20px;text-align:center;color:var(--s400);font-size:13.5px">No students have joined yet. Share the class code <strong>${cls.code}</strong> with your students.</div>`;
+  }
+  const classMaterialIds=cls.materials.map(m=>m.id);
+  const rows=cls.students.map(email=>{
+    const sData=USER_DATA[email];
+    const sName=USERS_DB[email]?.name||email;
+    if(!sData){
+      return `<tr>
+        <td style="padding:12px 14px;font-weight:600">${sName}</td>
+        <td colspan="4" style="padding:12px 14px;color:var(--s400);font-size:13px">No activity yet</td>
+      </tr>`;
+    }
+    const preppedCount=sData.preparations.filter(p=>classMaterialIds.includes(p.material_id)).length;
+    const rehearsedCount=sData.preparations.filter(p=>classMaterialIds.includes(p.material_id)&&p.rehearsal_completed).length;
+    const reflectedCount=sData.reflections.filter(r=>classMaterialIds.includes(r.material_id)).length;
+    const totalSpoken=sData.reflections.filter(r=>classMaterialIds.includes(r.material_id)).reduce((s,r)=>s+(r.times_spoken||0),0);
+    const total=cls.materials.length*3;
+    const done=preppedCount+rehearsedCount+reflectedCount;
+    const pct=total>0?Math.round(done/total*100):0;
+    const pctColor=pct>=70?'var(--e600)':pct>=40?'var(--a600)':'var(--b600)';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:12px 14px">
+        <div style="font-weight:700;font-size:14px">${sName}</div>
+        <div style="font-size:11px;color:var(--s400)">${email}</div>
+      </td>
+      <td style="padding:12px 14px;text-align:center">
+        <span style="font-weight:800;font-size:15px;color:var(--v600)">${preppedCount}</span>
+        <div style="font-size:11px;color:var(--s400)">/ ${cls.materials.length}</div>
+      </td>
+      <td style="padding:12px 14px;text-align:center">
+        <span style="font-weight:800;font-size:15px;color:var(--b600)">${rehearsedCount}</span>
+        <div style="font-size:11px;color:var(--s400)">/ ${cls.materials.length}</div>
+      </td>
+      <td style="padding:12px 14px;text-align:center">
+        <span style="font-weight:800;font-size:15px;color:var(--e600)">${reflectedCount}</span>
+        <div style="font-size:11px;color:var(--s400)">/ ${cls.materials.length}</div>
+      </td>
+      <td style="padding:12px 14px;text-align:center">
+        <span style="font-weight:800;font-size:15px;color:var(--a600)">${totalSpoken}</span>
+        <div style="font-size:11px;color:var(--s400)">times</div>
+      </td>
+      <td style="padding:12px 14px;min-width:100px">
+        <div style="font-size:12px;font-weight:700;color:${pctColor};margin-bottom:4px">${pct}%</div>
+        <div class="progress-bar"><div style="height:100%;background:${pctColor};border-radius:99px;width:${pct}%"></div></div>
+      </td>
+    </tr>`;
+  }).join('');
+  return `
+    <div style="border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-top:4px">
+      <div style="background:var(--s50);padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;font-weight:800;color:var(--s700)">👥 Student Progress — ${cls.name}</span>
+        <span style="font-size:12px;color:var(--s400)">${cls.students.length} student${cls.students.length!==1?'s':''} · ${cls.materials.length} material${cls.materials.length!==1?'s':''}</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif">
+          <thead>
+            <tr style="background:var(--v50)">
+              <th style="padding:10px 14px;text-align:left;font-size:11.5px;font-weight:800;color:var(--s500);text-transform:uppercase;letter-spacing:.05em">Student</th>
+              <th style="padding:10px 14px;text-align:center;font-size:11.5px;font-weight:800;color:var(--v600);text-transform:uppercase;letter-spacing:.05em">📚 Prep</th>
+              <th style="padding:10px 14px;text-align:center;font-size:11.5px;font-weight:800;color:var(--b600);text-transform:uppercase;letter-spacing:.05em">🎤 Rehearsal</th>
+              <th style="padding:10px 14px;text-align:center;font-size:11.5px;font-weight:800;color:var(--e600);text-transform:uppercase;letter-spacing:.05em">✍️ Reflection</th>
+              <th style="padding:10px 14px;text-align:center;font-size:11.5px;font-weight:800;color:var(--a600);text-transform:uppercase;letter-spacing:.05em">🗣 Spoken</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11.5px;font-weight:800;color:var(--s500);text-transform:uppercase;letter-spacing:.05em">Overall</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
 function copyCode(code){navigator.clipboard.writeText(code).then(()=>toast('Code "'+code+'" copied!','success')).catch(()=>toast(code));}
 function deleteClass(code){if(!confirm('Delete this class?'))return;delete CLASS_DB[code];renderTeacherClasses();}
 function renderMyClass(){const d=ud();const el=document.getElementById('my-class-content');if(!d.joinedClasses.length){document.getElementById('my-class-name').textContent='No Class Joined';el.innerHTML=`<div class="card"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="9" cy="7" r="4"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/></svg><h3>No class joined</h3><p>Ask your teacher for a code</p><button class="btn btn-primary mt-4" onclick="openModal('join-class-modal')">+ Join Class</button></div></div>`;return;}const myCls=d.joinedClasses.map(code=>CLASS_DB[code]).filter(Boolean);document.getElementById('my-class-name').textContent=myCls.length===1?myCls[0].name:myCls.length+' Classes';el.innerHTML=myCls.map(cls=>`<div class="class-card mb-4"><div class="flex items-center justify-between mb-3"><h2 style="font-size:18px;font-weight:800">${cls.name}</h2><button class="btn btn-ghost btn-sm" onclick="leaveClass('${cls.code}')">Leave</button></div>${cls.materials.length?cls.materials.map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--v50);border-radius:10px;margin-bottom:8px;border:1px solid var(--v100)"><div style="font-weight:700;font-size:14px">${m.title}</div><button class="btn btn-primary btn-sm" onclick="prepMaterial('${m.id}')">Prepare →</button></div>`).join(''):`<p style="color:var(--s400);font-size:13px">No materials yet.</p>`}</div>`).join('');}
