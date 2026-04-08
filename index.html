@@ -402,82 +402,638 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
       </div>
     </div>
 
-    <!-- PRE-CLASS PREP -->
-    <div class="page" id="page-PreClassPrep">
-      <div class="container">
-        <div class="mb-6"><div style="color:var(--v600);font-size:13px;font-weight:600;margin-bottom:6px">📚 Stage 1 — Constructive Engagement</div><h1 style="font-size:28px;font-weight:800">Pre-Class Preparation</h1><p style="color:var(--s500);margin-top:6px;font-size:14px">AI analyses your material and guides you to build understanding in your own words.</p></div>
-        <div class="card mb-4"><div class="card-body"><label class="label">Select Class Material</label><select id="prep-material-select" onchange="loadPrepMaterial()"><option value="">Choose material...</option></select></div></div>
-        <div id="prep-extracting" class="hidden">
-          <div class="card" style="padding:48px 24px;text-align:center"><div class="spinner" style="margin:0 auto 16px"></div><h3 style="font-size:16px;font-weight:700;margin-bottom:6px">AI is analysing your material…</h3><p style="font-size:13px;color:var(--s500)" id="extracting-msg">Extracting key concepts…</p></div>
-        </div>
-        <div id="prep-content" class="hidden">
-          <div class="card mb-4" style="background:linear-gradient(135deg,var(--v50),var(--b50))"><div class="card-body"><div class="flex items-center justify-between mb-2"><span style="font-weight:600;color:var(--s700)">Your Progress</span><span style="font-weight:700;color:var(--v600)" id="prep-pct">0%</span></div><div class="progress-bar"><div class="progress-fill" id="prep-bar" style="width:0%"></div></div><p style="font-size:12.5px;color:var(--s500);margin-top:6px" id="prep-text">Work through each concept below</p></div></div>
-          <!-- Stage 1: Summary -->
-          <div class="card mb-4"><div class="card-header"><div class="card-title">🔍 Stage 1 — Summarise the Material</div></div><div class="card-body" style="padding-top:12px"><p style="font-size:13.5px;color:var(--s600);margin-bottom:14px" id="prep-summary-q">What are the main points of this material?</p><div id="prep-summary-chat"></div></div></div>
-          <!-- Stage 2: Concepts -->
-          <div id="concept-cards-section" class="mb-4">
-            <div class="flex items-center justify-between mb-3"><h3 style="font-size:16px;font-weight:700">🧠 Stage 2 — Key Concepts</h3><span class="badge badge-violet" id="concepts-extracted-badge"></span></div>
-            <div id="concept-cards"></div>
-          </div>
-          <!-- Stage 3: Position -->
-          <div class="card mb-4"><div class="card-header"><div class="card-title">💬 Stage 3 — Your Discussion Position</div></div><div class="card-body" style="padding-top:12px"><textarea id="discussion-position" placeholder="I think… / I believe… / I would argue that…" rows="3"></textarea><div id="position-ai-hint" class="hidden mt-3" style="background:var(--v50);border-left:3px solid var(--v400);border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:var(--v700)"></div><button class="btn btn-outline btn-sm mt-3" onclick="getPositionHint()">✨ Get a hint from AI</button></div></div>
-          <div class="flex items-center justify-between flex-wrap gap-3"><button class="btn btn-outline" onclick="savePrepProgress()">Save Progress</button><button class="btn btn-primary" onclick="navigate('Rehearsal')">Continue to Rehearsal →</button></div>
-        </div>
-      </div>
+ // ══════════════════════════════════════════
+// PRE-CLASS PREP
+// ══════════════════════════════════════════
+function initPrep() { populateSelects(); }
+ 
+async function loadPrepMaterial() {
+  const d = ud();
+  const matId = document.getElementById('prep-material-select').value;
+  const prepContent = document.getElementById('prep-content');
+  const prepExtracting = document.getElementById('prep-extracting');
+  prepContent.classList.add('hidden');
+  prepExtracting.classList.add('hidden');
+  if (!matId) return;
+  const mat = d.materials.find(m => m.id === matId);
+  if (!mat) return;
+ 
+  // Init prep state
+  if (!PREP_STATES[matId]) PREP_STATES[matId] = {summaryMsgs:[], conceptStates:{}, expandedIdx:-1};
+ 
+  // Auto-extract concepts whenever material is selected
+  if (!mat.ai_concepts || mat.ai_concepts.length === 0) {
+    prepExtracting.classList.remove('hidden');
+    const msgs = ['Extracting key concepts…','Identifying vocabulary…','Building your guide…'];
+    let li = 0;
+    const iv = setInterval(() => {
+      li++;
+      const el = document.getElementById('extracting-msg');
+      if (el && li < msgs.length) el.textContent = msgs[li];
+    }, 1000);
+    mat.ai_concepts = await extractConcepts(mat);
+    if (mat.ai_concepts.length === 0) {
+      toast('Could not extract concepts — check your material has text content.', 'error');
+    }
+    clearInterval(iv);
+    prepExtracting.classList.add('hidden');
+    renderMaterials();
+  }
+ 
+  prepContent.classList.remove('hidden');
+  document.getElementById('prep-summary-q').textContent = `What are the main points of "${mat.title}"? Summarise in your own words.`;
+  renderSummaryChat(matId, mat);
+  document.getElementById('concepts-extracted-badge').textContent = mat.ai_concepts.length + ' concepts extracted';
+  renderConceptCards(mat.ai_concepts, matId, d);
+ 
+  // 初始化同学新增的 Free Chat 功能
+  initPrepFreeChat(matId, mat);
+ 
+  const saved = d.preparations.find(p => p.material_id === matId);
+  if (saved?.discussion_position) document.getElementById('discussion-position').value = saved.discussion_position;
+  updatePrepProgress(mat, matId, d);
+}
+ 
+async function extractConcepts(mat) {
+  const content = (mat.notes || mat.content || mat.title || '').substring(0, 4000);
+  console.log('DEBUG mat:', JSON.stringify({id: mat.id, title: mat.title, notesLen: (mat.notes||'').length, contentLen: (mat.content||'').length}));
+  if (!content || content === mat.title) return [];
+  try {
+    const raw = await callClaude(
+      `You are an academic reading assistant. Read this material carefully and extract 4-6 key concepts that are SPECIFIC to this text.\n\nTitle: ${mat.title}\nContent: ${content}\n\nReturn ONLY a valid JSON array with no markdown fences, no preamble:\n[{"concept":"Exact term from the text","definition":"1-2 sentence plain English definition based on the text","why_important":"1 sentence on why this concept matters for discussion of THIS material"}]\n\nOnly extract concepts actually present in the text above. Do not invent generic concepts.`,
+      'Return only valid JSON array. No markdown, no explanation.', 1200
+    );
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    return [];
+  } catch(e) {
+    console.warn('Concept extraction failed:', e);
+    return [];
+  }
+}
+ 
+function renderSummaryChat(matId, mat) {
+  const el = document.getElementById('prep-summary-chat');
+  const state = PREP_STATES[matId];
+  el.innerHTML = `<div class="ai-prep-chat">
+    <div class="ai-prep-header">✨ AI Learning Supporter</div>
+    <div class="ai-prep-msgs" id="smsgs-${matId}"></div>
+    <div class="ai-prep-input-row">
+      <textarea id="sinput-${matId}" rows="2" style="flex:1;resize:none;font-size:13px" placeholder="Type your summary here…"></textarea>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-end" onclick="sendSummaryMsg('${matId}')">Send</button>
     </div>
-
-    <!-- REHEARSAL -->
-    <div class="page" id="page-Rehearsal">
-      <div class="container">
-        <div id="rehearsal-setup">
-          <div class="mb-6"><div style="color:var(--b600);font-size:13px;font-weight:600;margin-bottom:6px">🎤 Stage 2</div><h1 style="font-size:28px;font-weight:800">Practice with AI Classmates</h1></div>
-          <div class="card mb-4"><div class="card-header"><div class="card-title">Setup</div></div><div class="card-body" style="padding-top:14px">
-            <div class="form-group"><label class="label">Select Material</label><select id="rehearsal-material-select"><option value="">Choose material…</option></select></div>
-            <div class="form-group"><label class="label">Number of Classmates</label><select id="rehearsal-num" onchange="renderClassmates(parseInt(this.value))"><option value="2">2 classmates</option><option value="3" selected>3 classmates</option><option value="4">4 classmates</option></select></div>
-            <div id="classmate-preview" class="mb-4"></div>
-            <button class="btn btn-blue btn-lg w-full" onclick="startRehearsal()">▶ Start Discussion</button>
-          </div></div>
-        </div>
-        <div id="rehearsal-loading" class="hidden"><div class="card" style="padding:48px 24px;text-align:center"><div class="spinner" style="margin:0 auto 16px"></div><h3 style="font-size:17px;font-weight:700;margin-bottom:6px">AI classmates are reading the material…</h3><p style="font-size:13.5px;color:var(--s500)" id="loading-msg">Analysing key concepts…</p></div></div>
-        <div id="rehearsal-session" class="hidden">
-          <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <div><h2 style="font-size:17px;font-weight:700" id="session-title">Topic</h2><p style="font-size:12px;color:var(--s500);margin-top:2px" id="session-classmates-label"></p></div>
-            <div class="flex items-center gap-2"><div class="timer-badge timer-normal" id="session-timer">05:00</div><button class="btn btn-ghost btn-icon" onclick="resetRehearsal()">↺</button></div>
+  </div>`;
+  state.summaryMsgs.forEach(m => appendAIMsg('smsgs-'+matId, m.role, m.text));
+  if (!state.summaryMsgs.length) {
+    const q = `What are the main points of "${mat.title}"? Please summarise them in your own words.`;
+    appendAIMsg('smsgs-'+matId, 'ai', q);
+    state.summaryMsgs.push({role:'ai', text:q});
+  }
+}
+ 
+async function sendSummaryMsg(matId) {
+  const inp = document.getElementById('sinput-'+matId); if (!inp) return;
+  const text = inp.value.trim(); if (!text) return; inp.value = '';
+  const state = PREP_STATES[matId]; if (!state || state._summaryWorking) return;
+  appendAIMsg('smsgs-'+matId, 'user', text);
+  state.summaryMsgs.push({role:'user', text});
+  state._summaryWorking = true;
+  const d = ud(); const mat = d.materials.find(m => m.id===matId) || {};
+  const tid = 'stid'+Date.now(); showTyping('smsgs-'+matId, tid);
+  const hist = state.summaryMsgs.map(m => ({role:m.role==='ai'?'assistant':'user', content:m.text}));
+  const r = await claudeChat(hist, `You support international students summarising this material:\nTitle: ${mat.title}\nContent: ${(mat.content||mat.notes||'').substring(0,1500)}\n\nGive 1-2 sentence feedback, one encouragement, and ONE follow-up question. Under 80 words. Friendly, no bullets.`);
+  removeTyping('smsgs-'+matId); appendAIMsg('smsgs-'+matId, 'ai', r);
+  state.summaryMsgs.push({role:'ai', text:r});
+  state._summaryWorking = false;
+}
+ 
+function renderConceptCards(concepts, matId, d) {
+  const container = document.getElementById('concept-cards');
+  const saved = d.preparations.find(p => p.material_id===matId);
+  if (!concepts || !concepts.length) {
+    container.innerHTML = `<div class="card" style="padding:32px;text-align:center"><p style="font-size:32px;margin-bottom:8px">🔍</p><h3>No concepts extracted</h3><p style="color:var(--s500);font-size:13px">Make sure your material has content text.</p></div>`;
+    return;
+  }
+  container.innerHTML = concepts.map((c, i) => {
+    const e = saved?.concept_explanations?.[i] || {};
+    const done = e.my_explanation && e.my_explanation.length > 20;
+    return `<div class="card concept-card">
+      <div class="concept-header" onclick="toggleConceptCard(${i},'${matId}')">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+          <div class="concept-num${done?' done':''}" id="cnum-${i}">${done?'✓':i+1}</div>
+          <div class="min-w-0">
+            <span style="font-weight:700;font-size:15px">${c.concept}</span>
+            ${c.why_important?`<div style="font-size:12px;color:var(--s500);margin-top:1px">${c.why_important}</div>`:''}
           </div>
-          <div class="card mb-3"><div class="chat-area" id="chat-area"></div></div>
-          <div class="card"><div class="card-body" style="padding:16px">
-            <div id="session-active">
-              <!-- ── CHANGE 2: Mic button + editable transcript panel ── -->
-              <div class="flex items-center gap-3 flex-wrap">
-                <button class="btn btn-blue btn-lg flex-1" id="mic-btn" onclick="toggleMic()">🎙 Speak</button>
-                <button class="btn btn-outline" onclick="finishEarly()">End Session</button>
-              </div>
-              <!-- Step A: live listening indicator (shown while mic is active) -->
-              <div id="live-transcript-wrap" class="hidden mt-3">
-                <div class="transcript-box listening" id="rehearsal-transcript">Listening…</div>
-                <p style="font-size:11.5px;color:var(--s400);margin-top:6px">🎤 Recording… Click <strong>Stop & Edit</strong> to review before sending.</p>
-              </div>
-              <!-- Step B: editable textarea shown after mic stops -->
-              <div id="edit-transcript-wrap" class="hidden mt-3">
-                <div style="font-size:12px;font-weight:700;color:var(--v700);margin-bottom:6px;display:flex;align-items:center;gap:6px">
-                  <span>✏️ Review & edit your message before sending</span>
-                </div>
-                <textarea id="edit-transcript-input" class="transcript-edit-box" rows="3" placeholder="Your recognised speech will appear here for editing…"></textarea>
-                <div class="transcript-edit-hint">
-                  <span>💡 Fix any speech recognition errors, then click Send.</span>
-                </div>
-                <div class="flex gap-2 mt-3">
-                  <button class="btn btn-blue flex-1" onclick="sendEditedTranscript()">📤 Send</button>
-                  <button class="btn btn-ghost" onclick="cancelEditedTranscript()">✕ Cancel</button>
-                </div>
-              </div>
-              <p style="font-size:12px;color:var(--s400);margin-top:6px" id="mic-hint">Click the mic to speak, click again to stop and edit your message.</p>
-            </div>
-            <div id="session-done" class="hidden text-center"><p style="color:var(--s600);font-weight:600;margin-bottom:12px">Session complete — great work!</p><button class="btn btn-emerald btn-lg" onclick="navigate('DiscussionPhrases')">Continue to Phrases →</button></div>
-          </div></div>
         </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" id="cchev-${i}"><path d="m6 9 6 6 6-6"/></svg>
       </div>
+      <div class="concept-body" id="cbody-${i}" style="display:none">
+        ${c.definition?`<div style="background:var(--s50);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--s600);margin:4px 0 12px"><strong>Definition:</strong> ${c.definition}</div>`:''}
+        <div class="form-group mt-2">
+          <label class="label">💡 Explain in your own words</label>
+          <textarea rows="3" placeholder="What does this mean to you?" id="exp-${i}" oninput="updateConceptExp(${i},'${matId}',this.value)">${e.my_explanation||''}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="label">🔗 Connect to previous knowledge</label>
+          <textarea rows="2" id="conn-${i}" oninput="updateConceptConn(${i},'${matId}',this.value)">${e.connection||''}</textarea>
+        </div>
+        <div id="cchat-${i}-${matId}"></div>
+        <button class="btn btn-outline btn-sm mt-3" onclick="openConceptChat(${i},'${matId}')">✨ Discuss with AI Supporter</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+ 
+function toggleConceptCard(idx, matId) {
+  const state = PREP_STATES[matId];
+  const prev = state.expandedIdx;
+  if (prev >= 0 && prev !== idx) {
+    const ob = document.getElementById('cbody-'+prev), oc = document.getElementById('cchev-'+prev);
+    if (ob) ob.style.display = 'none';
+    if (oc) oc.innerHTML = '<path d="m6 9 6 6 6-6"/>';
+  }
+  const b = document.getElementById('cbody-'+idx), ch = document.getElementById('cchev-'+idx);
+  if (!b) return;
+  const opening = b.style.display === 'none';
+  b.style.display = opening ? 'block' : 'none';
+  if (ch) ch.innerHTML = opening ? '<path d="m18 15-6-6-6 6"/>' : '<path d="m6 9 6 6 6-6"/>';
+  state.expandedIdx = opening ? idx : -1;
+}
+ 
+function updateConceptExp(idx, matId, val) {
+  const d = ud();
+  let prep = d.preparations.find(p => p.material_id===matId);
+  if (!prep) { prep={id:'prep'+Date.now(),material_id:matId,concept_explanations:[],discussion_position:'',rehearsal_completed:false}; d.preparations.push(prep); }
+  if (!prep.concept_explanations[idx]) prep.concept_explanations[idx] = {};
+  prep.concept_explanations[idx].my_explanation = val;
+  const n = document.getElementById('cnum-'+idx);
+  if (n) { n.className='concept-num'+(val.length>20?' done':''); n.textContent = val.length>20 ? '✓' : idx+1; }
+  const mat = d.materials.find(m => m.id===matId);
+  updatePrepProgress(mat, matId, d);
+}
+ 
+function updateConceptConn(idx, matId, val) {
+  const d = ud(); const p = d.preparations.find(x => x.material_id===matId);
+  if (p && p.concept_explanations[idx]) p.concept_explanations[idx].connection = val;
+}
+ 
+async function openConceptChat(idx, matId) {
+  const el = document.getElementById(`cchat-${idx}-${matId}`); if (!el) return;
+  const state = PREP_STATES[matId];
+  if (!state.conceptStates[idx]) state.conceptStates[idx] = {msgs:[], working:false};
+  if (el.innerHTML) { el.style.display = el.style.display==='none'?'block':'none'; return; }
+  const d = ud(); const mat = d.materials.find(m=>m.id===matId); const c = mat?.ai_concepts?.[idx]; if (!c) return;
+  el.innerHTML = `<div class="ai-prep-chat mt-3">
+    <div class="ai-prep-header">✨ AI Supporter — ${c.concept}</div>
+    <div class="ai-prep-msgs" id="cmsgs-${idx}-${matId}"></div>
+    <div class="ai-prep-input-row">
+      <textarea id="cinput-${idx}-${matId}" rows="2" style="flex:1;resize:none;font-size:13px" placeholder="Explain this concept…"></textarea>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-end" onclick="sendConceptMsg(${idx},'${matId}')">Send</button>
     </div>
+  </div>`;
+  const q = `Let's focus on **${c.concept}**. Can you explain what this means in your own words?`;
+  appendAIMsg(`cmsgs-${idx}-${matId}`, 'ai', q);
+  state.conceptStates[idx].msgs.push({role:'ai', text:q});
+}
+ 
+async function sendConceptMsg(idx, matId) {
+  const inp = document.getElementById(`cinput-${idx}-${matId}`); if (!inp) return;
+  const text = inp.value.trim(); if (!text) return; inp.value = '';
+  const state = PREP_STATES[matId]?.conceptStates?.[idx]; if (!state || state.working) return;
+  appendAIMsg(`cmsgs-${idx}-${matId}`, 'user', text);
+  state.msgs.push({role:'user', text}); state.working = true;
+  const d = ud(); const mat = d.materials.find(m=>m.id===matId); const c = mat?.ai_concepts?.[idx];
+  const tid = 'ctid'+Date.now(); showTyping(`cmsgs-${idx}-${matId}`, tid);
+  const hist = state.msgs.map(m => ({role:m.role==='ai'?'assistant':'user', content:m.text}));
+  const r = await claudeChat(hist, `Help student understand "${c?.concept}" from: ${mat?.title}\nContent excerpt: ${(mat?.content||mat?.notes||'').substring(0,1000)}\n\nFeedback: 1-2 sentences, one hint, ONE question. Under 80 words. Friendly.`);
+  removeTyping(`cmsgs-${idx}-${matId}`);
+  appendAIMsg(`cmsgs-${idx}-${matId}`, 'ai', r);
+  state.msgs.push({role:'ai', text:r}); state.working = false;
+}
+ 
+async function getPositionHint() {
+  const matId = document.getElementById('prep-material-select').value; if (!matId) return;
+  const d = ud(); const mat = d.materials.find(m=>m.id===matId); if (!mat) return;
+  const btn = document.querySelector('[onclick="getPositionHint()"]');
+  if (btn) { btn.textContent='⏳…'; btn.disabled=true; }
+  const hint = await callClaude(`Student preparing a discussion position about:\nTitle: ${mat.title}\nContent: ${(mat.content||mat.notes||'').substring(0,1200)}\nStudent's current position: "${document.getElementById('discussion-position').value||'(nothing yet)'}"\n\nGive ONE brief hint (1-2 sentences) to help them form a stronger position. Don't give the full answer.`, '', 150);
+  document.getElementById('position-ai-hint').textContent = '💡 ' + (hint || 'Think about which concept you feel most strongly about — that could anchor your position.');
+  document.getElementById('position-ai-hint').classList.remove('hidden');
+  if (btn) { btn.textContent='✨ Get a hint from AI'; btn.disabled=false; }
+}
+ 
+function updatePrepProgress(mat, matId, d) {
+  const p = d.preparations.find(x => x.material_id===matId);
+  const total = (mat?.ai_concepts||[]).length;
+  const done = p?.concept_explanations?.filter(c=>c?.my_explanation&&c.my_explanation.length>20).length||0;
+  const pct = total>0 ? Math.round(done/total*100) : 0;
+  const ep=document.getElementById('prep-pct'), eb=document.getElementById('prep-bar'), et=document.getElementById('prep-text');
+  if(ep) ep.textContent=pct+'%'; if(eb) eb.style.width=pct+'%';
+  if(et) et.textContent = total ? `${done} of ${total} concepts explained` : 'Work through the concepts below';
+}
+ 
+function savePrepProgress() {
+  const d = ud(); const matId = document.getElementById('prep-material-select').value; if (!matId) return;
+  let p = d.preparations.find(x=>x.material_id===matId);
+  if (!p) { p={id:'prep'+Date.now(),material_id:matId,concept_explanations:[],discussion_position:'',rehearsal_completed:false}; d.preparations.push(p); }
+  p.discussion_position = document.getElementById('discussion-position').value;
+  toast('Progress saved!','success');
+}
+ 
+// AI chat helpers
+let typingMap = {};
+function appendAIMsg(containerId, role, text) {
+  const el = document.getElementById(containerId); if (!el) return;
+  const isAI = role==='ai';
+  const d = document.createElement('div');
+  d.style.cssText = `display:flex;gap:8px;${isAI?'':'flex-direction:row-reverse'}`;
+  d.innerHTML = `<div style="width:26px;height:26px;border-radius:50%;background:${isAI?'linear-gradient(135deg,#7c3aed,#4f46e5)':'linear-gradient(135deg,#3b82f6,#06b6d4)'};display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;flex-shrink:0">${isAI?'AI':'You'}</div>
+  <div style="max-width:80%;padding:10px 13px;border-radius:${isAI?'4px 12px 12px 12px':'12px 4px 12px 12px'};background:${isAI?'white':'linear-gradient(135deg,#3b82f6,#06b6d4)'};color:${isAI?'var(--s700)':'white'};font-size:13.5px;line-height:1.6;border:${isAI?'1px solid var(--border)':'none'}">${text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+ 
+function showTyping(containerId, tid) {
+  const el = document.getElementById(containerId); if (!el) return;
+  const d = document.createElement('div'); d.id=tid; d.style.cssText='display:flex;gap:8px';
+  d.innerHTML=`<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700">AI</div><div class="typing-dots" style="border-radius:4px 12px 12px 12px"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  el.appendChild(d); el.scrollTop=el.scrollHeight; typingMap[containerId]=tid;
+}
+ 
+function removeTyping(containerId) { const tid=typingMap[containerId]; if(tid) document.getElementById(tid)?.remove(); delete typingMap[containerId]; }
+ 
+ 
+// ══════════════════════════════════════════
+// PREP FREE CHAT  （同学新增功能）
+// ══════════════════════════════════════════
+const PREP_CHAT_STATES = {}; // keyed by matId
+ 
+const PREP_STEPS = [
+  { num: 1, label: 'Understand',            icon: '📖' },
+  { num: 2, label: 'Connect',               icon: '🔗' },
+  { num: 3, label: 'Give your opinion',     icon: '💬' },
+  { num: 4, label: 'Consider another view', icon: '🔄' },
+];
+ 
+function renderPrepSteps(currentStep) {
+  const bar = document.getElementById('prep-progress-bar');
+  if (!bar) return;
+  const nodes = bar.querySelectorAll('.prep-step');
+  nodes.forEach(n => n.remove());
+ 
+  PREP_STEPS.forEach((s) => {
+    const isDone   = s.num < currentStep;
+    const isActive = s.num === currentStep;
+    const div = document.createElement('div');
+    div.className = 'prep-step';
+    div.innerHTML = `
+      <div class="prep-step-node ${isActive ? 'active' : isDone ? 'done' : ''}">
+        ${isDone ? '✓' : s.icon}
+      </div>
+      <div class="prep-step-label ${isActive ? 'active' : isDone ? 'done' : ''}">${s.label}</div>`;
+    bar.appendChild(div);
+  });
+ 
+  const fillLine = document.getElementById('prep-progress-fill-line');
+  if (fillLine) {
+    const pct = currentStep <= 1 ? 0 : ((currentStep - 1) / (PREP_STEPS.length - 1)) * 100;
+    fillLine.style.width = `calc(${pct}% - 0px)`;
+  }
+}
+ 
+function initPrepFreeChat(matId, mat) {
+  PREP_CHAT_STATES[matId] = { msgs: [], working: false, currentStep: 1 };
+  const state = PREP_CHAT_STATES[matId];
+  const welcome = `Hi! I've read **${mat.title}**. Let's work through it together. Start by asking me anything — what a concept means, what the main argument is, or anything you're unsure about.`;
+  state.msgs.push({ role: 'ai', text: welcome });
+  renderPrepFreeChatMsgs(matId);
+  renderPrepSteps(1);
+  const clearBtn = document.getElementById('prep-chat-clear-btn');
+  if (clearBtn) clearBtn.style.display = 'none';
+}
+ 
+function renderPrepFreeChatMsgs(matId) {
+  const container = document.getElementById('prep-free-chat-msgs');
+  if (!container) return;
+  const state = PREP_CHAT_STATES[matId];
+  if (!state) return;
+  container.innerHTML = '';
+  state.msgs.forEach(m => appendPrepFreeMsg(m.role, m.text));
+}
+ 
+function appendPrepFreeMsg(role, text) {
+  const container = document.getElementById('prep-free-chat-msgs');
+  if (!container) return;
+  const isAI = role === 'ai';
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;gap:10px;${isAI ? '' : 'flex-direction:row-reverse'}`;
+  div.innerHTML = `
+    <div style="width:32px;height:32px;border-radius:50%;background:${isAI ? 'linear-gradient(135deg,#7c3aed,#4f46e5)' : 'linear-gradient(135deg,#3b82f6,#06b6d4)'};display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px">${isAI ? '🤖' : 'You'}</div>
+    <div style="max-width:78%;padding:11px 15px;border-radius:${isAI ? '4px 14px 14px 14px' : '14px 4px 14px 14px'};background:${isAI ? 'white' : 'linear-gradient(135deg,#4f46e5,#3b82f6)'};color:${isAI ? 'var(--s700)' : 'white'};font-size:14px;line-height:1.65;border:${isAI ? '1px solid var(--border)' : 'none'};box-shadow:0 2px 8px rgba(0,0,0,.06)">${text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+ 
+async function sendPrepFreeChat() {
+  const matId = document.getElementById('prep-material-select').value;
+  if (!matId) { toast('Please select a material first', 'error'); return; }
+  const inp = document.getElementById('prep-free-chat-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  const state = PREP_CHAT_STATES[matId];
+  if (!state || state.working) return;
+ 
+  inp.value = '';
+  inp.style.height = 'auto';
+  state.msgs.push({ role: 'user', text });
+  appendPrepFreeMsg('user', text);
+  state.working = true;
+ 
+  const sendBtn = document.getElementById('prep-free-chat-send');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '…'; }
+ 
+  const typingId = 'pfc-typing-' + Date.now();
+  const typingDiv = document.createElement('div');
+  typingDiv.id = typingId;
+  typingDiv.style.cssText = 'display:flex;gap:10px;align-items:center';
+  typingDiv.innerHTML = `<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;color:white;font-size:11px">🤖</div><div class="typing-dots" style="border-radius:4px 14px 14px 14px"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  const container = document.getElementById('prep-free-chat-msgs');
+  container.appendChild(typingDiv);
+  container.scrollTop = container.scrollHeight;
+ 
+  const d = ud();
+  const mat = d.materials.find(m => m.id === matId);
+  const concepts = (mat?.ai_concepts || []).map(c => typeof c === 'string' ? c : c.concept).join(', ');
+  const content = (mat?.content || mat?.notes || '').substring(0, 3000);
+ 
+  const stagePattern = /stage\s*\d|step\s*\d|prior knowledge|self.expla|explain.*back|in your own words/i;
+  const cleanMsgs = state.msgs.filter(m => !(m.role === 'ai' && stagePattern.test(m.text)));
+  const history = cleanMsgs.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
+ 
+  const stepName = ['','Understand','Connect','Give your opinion','Consider another view'][state.currentStep] || 'Understand';
+  const system = `You are a conversational AI tutor helping a student through 4 steps of discussion preparation. You are currently on Step ${state.currentStep}: "${stepName}".
+ 
+Material: "${mat?.title || 'Unknown'}"
+Key concepts: ${concepts || 'none'}
+Content: ${content || 'none'}
+ 
+The 4 steps (in order):
+1. Understand — help the student grasp the material and key concepts
+2. Connect — help them relate it to broader ideas or their own experience
+3. Give your opinion — guide them to form a personal stance on the material
+4. Consider another view — help them think about counterarguments or alternative perspectives
+ 
+Rules:
+- Stay on the CURRENT step (Step ${state.currentStep}: ${stepName}) until the student has engaged meaningfully with it
+- When you judge the student is ready to move on, end your reply with exactly: [STEP:${Math.min(state.currentStep + 1, 4)}]
+- If you think they should stay on the current step, end with: [STEP:${state.currentStep}]
+- Never mention the step numbers or names to the student — guide them naturally
+- Keep replies to 2-4 sentences
+- Use **bold** for key terms`;
+ 
+  try {
+    let reply = await claudeChat(history, system, 400);
+    document.getElementById(typingId)?.remove();
+ 
+    const stepMatch = reply.match(/\[STEP:(\d)\]/);
+    if (stepMatch) {
+      const newStep = parseInt(stepMatch[1]);
+      if (newStep >= state.currentStep && newStep <= 4) {
+        state.currentStep = newStep;
+        renderPrepSteps(state.currentStep);
+      }
+      reply = reply.replace(/\[STEP:\d\]/, '').trim();
+    }
+ 
+    state.msgs.push({ role: 'ai', text: reply });
+    appendPrepFreeMsg('ai', reply);
+  } catch(e) {
+    document.getElementById(typingId)?.remove();
+    const err = 'Sorry, something went wrong. Please try again.';
+    state.msgs.push({ role: 'ai', text: err });
+    appendPrepFreeMsg('ai', err);
+  }
+ 
+  state.working = false;
+  if (sendBtn) {
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send';
+  }
+  document.getElementById('prep-chat-clear-btn').style.display = '';
+  inp.focus();
+}
+ 
+function clearPrepChat() {
+  const matId = document.getElementById('prep-material-select').value;
+  if (!matId) return;
+  PREP_CHAT_STATES[matId] = { msgs: [], working: false };
+  const d = ud();
+  const mat = d.materials.find(m => m.id === matId);
+  initPrepFreeChat(matId, mat);
+  document.getElementById('prep-chat-clear-btn').style.display = 'none';
+}
+ 
+ 
+// ══════════════════════════════════════════
+// PHRASE STOCK: SELECT & CLEAR  （同学新增功能）
+// ══════════════════════════════════════════
+let _selectedPhraseTemplate = '';
+ 
+function selectPhrase(text, el) {
+  _selectedPhraseTemplate = text;
+  const inp = document.getElementById('new-phrase-input');
+  if (inp) {
+    inp.value = text;
+    inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+    inp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  const preview = document.getElementById('selected-phrase-preview');
+  const previewText = document.getElementById('selected-phrase-text');
+  if (preview && previewText) { previewText.textContent = text; preview.style.display = 'block'; }
+  const toggleBtn = document.getElementById('ai-rephrase-toggle');
+  const clearBtn  = document.getElementById('clear-phrase-btn');
+  if (toggleBtn) toggleBtn.style.display = '';
+  if (clearBtn)  clearBtn.style.display  = '';
+  document.querySelectorAll('#panel-phrases-list .phrase-row, #panel-starred-list .phrase-row')
+    .forEach(r => r.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+}
+ 
+function clearPhraseInput() {
+  _selectedPhraseTemplate = '';
+  const inp = document.getElementById('new-phrase-input');
+  if (inp) { inp.value = ''; inp.focus(); }
+  const preview = document.getElementById('selected-phrase-preview');
+  if (preview) preview.style.display = 'none';
+  const aiRow = document.getElementById('ai-rephrase-row');
+  if (aiRow) aiRow.style.display = 'none';
+  const speakPanel = document.getElementById('speak-it-panel');
+  if (speakPanel) speakPanel.style.display = 'none';
+  const toggleBtn  = document.getElementById('ai-rephrase-toggle');
+  const clearBtn   = document.getElementById('clear-phrase-btn');
+  const speakBtn   = document.getElementById('speak-it-toggle');
+  if (toggleBtn) { toggleBtn.style.display = 'none'; toggleBtn.textContent = '✨ AI help'; }
+  if (clearBtn)  clearBtn.style.display  = 'none';
+  if (speakBtn)  speakBtn.textContent    = '🎙 Speak it';
+  document.querySelectorAll('#panel-phrases-list .phrase-row, #panel-starred-list .phrase-row')
+    .forEach(r => r.classList.remove('selected'));
+}
+ 
+ 
+// ══════════════════════════════════════════
+// PHRASE STOCK: SPEAK IT  （同学新增功能）
+// ══════════════════════════════════════════
+let phraseLang = 'zh-CN';
+let phraseListening = false;
+let phraseRecognizer = null;
+ 
+function toggleSpeakIt() {
+  const panel = document.getElementById('speak-it-panel');
+  const btn   = document.getElementById('speak-it-toggle');
+  if (!panel) return;
+  const showing = panel.style.display !== 'none';
+  panel.style.display = showing ? 'none' : 'block';
+  if (btn) btn.textContent = showing ? '🎙 Speak it' : '✕ Close speak';
+  if (!showing) {
+    const aiRow = document.getElementById('ai-rephrase-row');
+    if (aiRow) aiRow.style.display = 'none';
+    const aiBtn = document.getElementById('ai-rephrase-toggle');
+    if (aiBtn) aiBtn.textContent = '✨ AI help';
+  }
+}
+ 
+function selectPhraseLang(lang, btn) {
+  phraseLang = lang;
+  document.querySelectorAll('#phrase-lang-picker .lang-btn').forEach(b => b.classList.remove('selected'));
+  if (btn) btn.classList.add('selected');
+}
+ 
+function togglePhraseMic() {
+  if (!phraseListening) {
+    phraseListening = true;
+    const ring  = document.getElementById('phrase-mic-ring');
+    const label = document.getElementById('phrase-mic-label');
+    if (ring)  ring.className  = 'mic-ring listening';
+    if (label) label.textContent = '🔴 Listening… tap to stop';
+    document.getElementById('phrase-source-wrap').style.display = 'none';
+    document.getElementById('phrase-trans-wrap').style.display  = 'none';
+ 
+    phraseRecognizer = makeSpeechRec(
+      phraseLang,
+      e => {
+        let t = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
+        const el = document.getElementById('phrase-source-text');
+        if (el) el.textContent = t || '…';
+        document.getElementById('phrase-source-wrap').style.display = 'block';
+      },
+      () => {
+        phraseListening = false;
+        resetPhraseMic();
+        const said = document.getElementById('phrase-source-text')?.textContent;
+        if (said && said !== '—' && said !== '…') doPhraseTranslate(said);
+      },
+      () => { phraseListening = false; resetPhraseMic(); }
+    );
+    if (phraseRecognizer) {
+      try { phraseRecognizer.start(); }
+      catch(e) { toast('Could not start mic — allow mic access', 'error'); phraseListening = false; resetPhraseMic(); }
+    }
+  } else {
+    phraseListening = false;
+    if (phraseRecognizer) try { phraseRecognizer.stop(); } catch(e) {}
+    resetPhraseMic();
+    const said = document.getElementById('phrase-source-text')?.textContent;
+    if (said && said !== '—' && said !== '…') doPhraseTranslate(said);
+  }
+}
+ 
+function resetPhraseMic() {
+  const ring  = document.getElementById('phrase-mic-ring');
+  const label = document.getElementById('phrase-mic-label');
+  if (ring)  ring.className  = 'mic-ring idle';
+  if (label) label.textContent = 'Tap to speak';
+}
+ 
+async function doPhraseTranslate(text) {
+  const transWrap = document.getElementById('phrase-trans-wrap');
+  const transText = document.getElementById('phrase-trans-text');
+  if (!transWrap || !transText) return;
+  transWrap.style.display = 'block';
+  transText.innerHTML = '<span style="color:var(--s400)">✨ Translating…</span>';
+  try {
+    const result = await callClaude(
+      `Convert this into 1 natural English sentence a university student could say in a seminar discussion. Keep it simple and direct. Reply ONLY with the English sentence, nothing else:\n"${text}"`,
+      '', 120
+    );
+    transText.textContent = result?.trim() || 'Could not translate. Please try again.';
+  } catch(e) {
+    transText.textContent = 'Translation failed. Please try again.';
+  }
+}
+ 
+function usePhraseTrans() {
+  const transText = document.getElementById('phrase-trans-text');
+  const translated = transText?.textContent?.trim();
+  if (!translated || translated.includes('Translating') || translated.includes('failed')) return;
+  const inp = document.getElementById('new-phrase-input');
+  if (inp) {
+    inp.value = translated;
+    inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+  }
+  const clearBtn = document.getElementById('clear-phrase-btn');
+  if (clearBtn) clearBtn.style.display = '';
+  toggleSpeakIt();
+  inp?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  toast('Translation added — edit and save!', 'success');
+}
+ 
+// ── PHRASE STOCK: AI REPHRASE ──
+async function aiRephrasePhrase() {
+  const intent = document.getElementById('rephrase-intent-input')?.value.trim();
+  if (!intent) { toast('Please describe what you want to say', 'error'); return; }
+  const matId = currentPhraseMatId;
+  const d = ud();
+  const mat = d.materials.find(m => m.id === matId);
+  const template = _selectedPhraseTemplate;
+  const catId = phraseView;
+  const cat = PHRASE_TEMPLATES.find(t => t.id === catId);
+  const btn = document.getElementById('ai-rephrase-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Rewriting…'; }
+  const prompt = `A university student wants to say something in a class discussion.
+Talk move: "${cat?.label || catId}" (${cat?.instruction || ''})
+Template phrase: "${template}"
+What the student wants to say: "${intent}"
+Material topic: "${mat?.title || 'the reading'}"
+Rewrite the student's idea as a natural discussion sentence that follows the style of the template. Simple English (B1 level). One sentence only.
+Return ONLY the sentence.`;
+  const result = await callClaude(prompt, '', 120);
+  if (btn) { btn.disabled = false; btn.textContent = '✨ Rewrite for me'; }
+  if (result) {
+    const inp = document.getElementById('new-phrase-input');
+    if (inp) { inp.value = result.trim(); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    toast('Phrase rewritten!', 'success');
+  }
+}
+ 
+function toggleAIRephrase() {
+  const row = document.getElementById('ai-rephrase-row');
+  const btn = document.getElementById('ai-rephrase-toggle');
+  if (!row) return;
+  const showing = row.style.display !== 'none';
+  row.style.display = showing ? 'none' : 'block';
+  if (btn) btn.textContent = showing ? '✨ AI help' : '✕ Hide AI';
+  if (!showing) {
+    document.getElementById('rephrase-intent-input')?.focus();
+    const speakPanel = document.getElementById('speak-it-panel');
+    if (speakPanel) speakPanel.style.display = 'none';
+    const speakBtn = document.getElementById('speak-it-toggle');
+    if (speakBtn) speakBtn.textContent = '🎙 Speak it';
+  }
+}
 
     <!-- DISCUSSION PHRASES -->
     <div class="page" id="page-DiscussionPhrases">
