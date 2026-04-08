@@ -2,6 +2,11 @@
 <html lang="en">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+</script>
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
@@ -81,7 +86,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-@media(max-width:680px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+@media(max-width:680px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}} @media(max-width:860px){#phrases-content>[style*="grid-template-columns:1fr 320px"]{grid-template-columns:1fr !important}}
 #toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
 .toast{background:var(--s900);color:white;padding:12px 18px;border-radius:10px;font-size:13.5px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:toastIn .3s ease;display:flex;align-items:center;gap:8px}
 .toast.success{background:#064e3b}.toast.error{background:#7f1d1d}
@@ -112,6 +117,13 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .empty-state svg{width:56px;height:56px;stroke:var(--s200);margin-bottom:14px}
 .empty-state h3{font-size:17px;color:var(--s600);margin-bottom:6px}
 .empty-state p{font-size:13.5px;color:var(--s400)}
+.prep-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:2;cursor:default}
+.prep-step-node{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:rgba(255,255,255,.6);border:2px solid rgba(255,255,255,.3);transition:all .4s ease;flex-shrink:0}
+.prep-step-node.active{background:white;color:var(--v600);border-color:white;box-shadow:0 0 0 4px rgba(255,255,255,.25)}
+.prep-step-node.done{background:rgba(255,255,255,.9);color:var(--v600);border-color:white}
+.prep-step-label{font-size:10.5px;font-weight:700;color:rgba(255,255,255,.5);text-align:center;line-height:1.3;max-width:64px;transition:color .4s}
+.prep-step-label.active{color:white}
+.prep-step-label.done{color:rgba(255,255,255,.85)}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--s200);border-radius:99px}
 .auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#f8f7ff 0%,#fff 50%,#f0fdf4 100%);padding:20px}
 .auth-box{background:white;border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(124,58,237,.12);border:1px solid var(--border)}
@@ -177,6 +189,8 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .phrase-cat-tab.active{background:var(--v100);color:var(--v700);border-color:var(--v300)}
 .phrase-row{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;background:var(--s50);border-radius:10px;margin-bottom:8px;transition:background .15s}
 .phrase-row:hover{background:var(--v50)}
+.phrase-row.selected{background:var(--e50);border:1.5px solid var(--e100);border-radius:10px}
+.phrase-row.selected .phrase-text{color:var(--e600);font-weight:600}
 .phrase-star{background:none;border:none;cursor:pointer;font-size:18px;flex-shrink:0;padding:0 2px;line-height:1}
 .phrase-text{flex:1;font-size:14px;color:var(--s700);line-height:1.5}
 .phrase-del{background:none;border:none;cursor:pointer;color:var(--s300);font-size:16px;padding:0 2px;flex-shrink:0;transition:color .15s}
@@ -266,7 +280,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
   <div class="features-grid">
     <div class="feature-card"><div class="feature-icon" style="background:#ede9fe"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><div><div style="font-weight:700;margin-bottom:4px">Pre-class Prep</div><div style="font-size:13px;color:var(--s500)">AI extracts concepts & guides you</div></div></div>
     <div class="feature-card"><div class="feature-icon" style="background:#dbeafe"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></div><div><div style="font-weight:700;margin-bottom:4px">Rehearsal</div><div style="font-size:13px;color:var(--s500)">Practice with AI classmates</div></div></div>
-    <div class="feature-card"><div class="feature-icon" style="background:#d1fae5"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div><div style="font-weight:700;margin-bottom:4px">Discussion Phrases</div><div style="font-size:13px;color:var(--s500)">AI-generated phrases from your material</div></div></div>
+    <div class="feature-card"><div class="feature-icon" style="background:#d1fae5"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div><div style="font-weight:700;margin-bottom:4px">Phrase Stock</div><div style="font-size:13px;color:var(--s500)">AI-generated phrases from your material</div></div></div>
     <div class="feature-card"><div class="feature-icon" style="background:#fef3c7"><svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div><div><div style="font-weight:700;margin-bottom:4px">Reflection</div><div style="font-size:13px;color:var(--s500)">Track progress and provide AI feedbacks</div></div></div>
   </div>
 </div>
@@ -283,8 +297,8 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     <div class="auth-switch mt-2"><span onclick="showView('landing')">← Back</span></div>
     <div style="margin-top:20px;background:var(--v50);border-radius:10px;padding:14px;font-size:12.5px;color:var(--s600)">
       <div style="font-weight:700;color:var(--v700);margin-bottom:6px">✨ Demo accounts</div>
-      <div style="cursor:pointer;margin-bottom:6px" onclick="document.getElementById('login-email').value='student@demo.com';document.getElementById('login-password').value='demo1234'">🎓 student@demo.com / demo1234</div>
-      <div style="cursor:pointer" onclick="document.getElementById('login-email').value='teacher@demo.com';document.getElementById('login-password').value='demo1234'">📋 teacher@demo.com / demo1234</div>
+      <div style="cursor:pointer;margin-bottom:6px" onclick="document.getElementById('login-email').value='student@demo.com';document.getElementById('login-password').value='demo1234'">🎓 <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="93e0e7e6f7f6fde7d3f7f6fefcbdf0fcfe">[email&#160;protected]</a> / demo1234</div>
+      <div style="cursor:pointer" onclick="document.getElementById('login-email').value='teacher@demo.com';document.getElementById('login-password').value='demo1234'">📋 <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f5819094969d9087b59190989adb969a98">[email&#160;protected]</a> / demo1234</div>
     </div>
   </div></div>
 </div>
@@ -310,6 +324,100 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 </div>
 
 <!-- ══ APP ══ -->
+<!-- ══ FLOW MAP ══ -->
+<div id="view-flowmap" class="hidden">
+  <div style="min-height:100vh;background:linear-gradient(160deg,#f8f7ff 0%,#fff 55%,#eff6ff 100%);display:flex;align-items:center;justify-content:center;padding:32px 20px">
+
+    <!-- One big block -->
+    <div style="background:white;border-radius:24px;box-shadow:0 12px 48px rgba(124,58,237,.13);border:1.5px solid #ede9fe;max-width:600px;width:100%;overflow:hidden">
+
+      <!-- Block header -->
+      <div style="background:linear-gradient(135deg,#7c3aed,#4f46e5,#2563eb);padding:36px 40px 32px;text-align:center">
+        <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:18px">
+          <div style="width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <span style="font-family:'Sora',sans-serif;font-size:17px;font-weight:800;color:white">DiscussReady</span>
+        </div>
+        <h1 style="font-family:'Sora',sans-serif;font-size:clamp(20px,3vw,28px);font-weight:800;color:white;margin-bottom:10px">Welcome! Here's how it works 👋</h1>
+        <p style="font-size:14px;color:rgba(255,255,255,.78);max-width:400px;margin:0 auto;line-height:1.65">Follow these four steps to walk into every class feeling prepared and confident.</p>
+      </div>
+
+      <!-- Steps list -->
+      <div style="padding:32px 40px 28px">
+
+        <!-- Step 1 -->
+        <div style="display:flex;align-items:flex-start;gap:18px;padding-bottom:24px;border-bottom:1px solid #f1f5f9">
+          <div style="width:48px;height:48px;border-radius:14px;background:#f5f3ff;border:1.5px solid #ede9fe;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <span style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#a78bfa">Step 1</span>
+            </div>
+            <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px">Add Materials</div>
+            <div style="font-size:13.5px;color:#64748b;line-height:1.6">Upload your readings, lecture notes, or paste key content so the AI can help you prepare.</div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div style="display:flex;align-items:flex-start;gap:18px;padding:24px 0;border-bottom:1px solid #f1f5f9">
+          <div style="width:48px;height:48px;border-radius:14px;background:#eff6ff;border:1.5px solid #dbeafe;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <span style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#60a5fa">Step 2</span>
+            </div>
+            <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px">Pre-Class Prep</div>
+            <div style="font-size:13.5px;color:#64748b;line-height:1.6">Chat with your AI tutor to understand key concepts and build your discussion position before class.</div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div style="display:flex;align-items:flex-start;gap:18px;padding:24px 0;border-bottom:1px solid #f1f5f9">
+          <div style="width:48px;height:48px;border-radius:14px;background:#ecfdf5;border:1.5px solid #d1fae5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <span style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#34d399">Step 3</span>
+            </div>
+            <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px">Rehearsal</div>
+            <div style="font-size:13.5px;color:#64748b;line-height:1.6">Practice speaking with AI classmates who ask questions and challenge your ideas out loud.</div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div style="display:flex;align-items:flex-start;gap:18px;padding-top:24px">
+          <div style="width:48px;height:48px;border-radius:14px;background:#fffbeb;border:1.5px solid #fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <span style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#fbbf24">Step 4</span>
+            </div>
+            <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px">Reflection & AI Phrases</div>
+            <div style="font-size:13.5px;color:#64748b;line-height:1.6">Log how class went, get AI feedback, and collect discussion phrases tailored to your material.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA footer -->
+      <div style="padding:0 40px 36px;text-align:center">
+        <button onclick="dismissFlowMap()"
+          style="width:100%;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;padding:15px 32px;border-radius:12px;font-size:16px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;box-shadow:0 6px 20px rgba(124,58,237,.3);transition:transform .15s,box-shadow .15s"
+          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 28px rgba(124,58,237,.4)'"
+          onmouseout="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(124,58,237,.3)'">
+          Add Your First Material →
+        </button>
+        <p style="font-size:12px;color:#94a3b8;margin-top:12px">You can always come back to your dashboard from the sidebar.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <div id="view-app" class="hidden">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo" onclick="navigate('Home')">
@@ -353,7 +461,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
         <div class="grid-2 mb-6">
           <div class="card stage-card" onclick="navigate('PreClassPrep')"><div class="stage-icon" style="background:var(--v50)"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><div class="flex-1"><h3 style="font-size:15px;font-weight:700;margin-bottom:4px">Pre-Class Prep</h3><p style="font-size:13px;color:var(--s500)">AI extracts concepts & guides you</p></div></div>
           <div class="card stage-card" onclick="navigate('Rehearsal')"><div class="stage-icon" style="background:var(--b50)"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></div><div class="flex-1"><h3 style="font-size:15px;font-weight:700;margin-bottom:4px">Rehearsal</h3><p style="font-size:13px;color:var(--s500)">Practice with AI classmates</p></div></div>
-          <div class="card stage-card" onclick="navigate('DiscussionPhrases')"><div class="stage-icon" style="background:var(--e50)"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="flex-1"><h3 style="font-size:15px;font-weight:700;margin-bottom:4px">Discussion Phrases</h3><p style="font-size:13px;color:var(--s500)">AI phrases from your material</p></div></div>
+          <div class="card stage-card" onclick="navigate('DiscussionPhrases')"><div class="stage-icon" style="background:var(--e50)"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="flex-1"><h3 style="font-size:15px;font-weight:700;margin-bottom:4px">Phrase Stock</h3><p style="font-size:13px;color:var(--s500)">AI phrases from your material</p></div></div>
           <div class="card stage-card" onclick="navigate('Reflection')"><div class="stage-icon" style="background:var(--a50)"><svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div><div class="flex-1"><h3 style="font-size:15px;font-weight:700;margin-bottom:4px">Reflection</h3><p style="font-size:13px;color:var(--s500)">Track progress and provide AI feedbacks</p></div></div>
         </div>
         <div class="conf-tier mb-4" style="background:var(--v50)" onclick="navigate('Achievements')">
@@ -405,24 +513,82 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     <!-- PRE-CLASS PREP -->
     <div class="page" id="page-PreClassPrep">
       <div class="container">
-        <div class="mb-6"><div style="color:var(--v600);font-size:13px;font-weight:600;margin-bottom:6px">📚 Stage 1 — Constructive Engagement</div><h1 style="font-size:28px;font-weight:800">Pre-Class Preparation</h1><p style="color:var(--s500);margin-top:6px;font-size:14px">AI analyses your material and guides you to build understanding in your own words.</p></div>
-        <div class="card mb-4"><div class="card-body"><label class="label">Select Class Material</label><select id="prep-material-select" onchange="loadPrepMaterial()"><option value="">Choose material...</option></select></div></div>
-        <div id="prep-extracting" class="hidden">
-          <div class="card" style="padding:48px 24px;text-align:center"><div class="spinner" style="margin:0 auto 16px"></div><h3 style="font-size:16px;font-weight:700;margin-bottom:6px">AI is analysing your material…</h3><p style="font-size:13px;color:var(--s500)" id="extracting-msg">Extracting key concepts…</p></div>
+        <div class="mb-6">
+          <div style="color:var(--v600);font-size:13px;font-weight:600;margin-bottom:6px">📚 Pre-Class Preparation</div>
+          <h1 style="font-size:28px;font-weight:800">AI Tutor Chat</h1>
+          <p style="color:var(--s500);margin-top:6px;font-size:14px">Select your material and chat with your AI tutor to deepen your understanding before class.</p>
         </div>
-        <div id="prep-content" class="hidden">
-          <div class="card mb-4" style="background:linear-gradient(135deg,var(--v50),var(--b50))"><div class="card-body"><div class="flex items-center justify-between mb-2"><span style="font-weight:600;color:var(--s700)">Your Progress</span><span style="font-weight:700;color:var(--v600)" id="prep-pct">0%</span></div><div class="progress-bar"><div class="progress-fill" id="prep-bar" style="width:0%"></div></div><p style="font-size:12.5px;color:var(--s500);margin-top:6px" id="prep-text">Work through each concept below</p></div></div>
-          <!-- Stage 1: Summary -->
-          <div class="card mb-4"><div class="card-header"><div class="card-title">🔍 Stage 1 — Summarise the Material</div></div><div class="card-body" style="padding-top:12px"><p style="font-size:13.5px;color:var(--s600);margin-bottom:14px" id="prep-summary-q">What are the main points of this material?</p><div id="prep-summary-chat"></div></div></div>
-          <!-- Stage 2: Concepts -->
-          <div id="concept-cards-section" class="mb-4">
-            <div class="flex items-center justify-between mb-3"><h3 style="font-size:16px;font-weight:700">🧠 Stage 2 — Key Concepts</h3><span class="badge badge-violet" id="concepts-extracted-badge"></span></div>
-            <div id="concept-cards"></div>
+
+        <!-- Material selector -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <label class="label">Select Class Material</label>
+            <select id="prep-material-select" onchange="loadPrepMaterial()"><option value="">Choose material...</option></select>
           </div>
-          <!-- Stage 3: Position -->
-          <div class="card mb-4"><div class="card-header"><div class="card-title">💬 Stage 3 — Your Discussion Position</div></div><div class="card-body" style="padding-top:12px"><textarea id="discussion-position" placeholder="I think… / I believe… / I would argue that…" rows="3"></textarea><div id="position-ai-hint" class="hidden mt-3" style="background:var(--v50);border-left:3px solid var(--v400);border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:var(--v700)"></div><button class="btn btn-outline btn-sm mt-3" onclick="getPositionHint()">✨ Get a hint from AI</button></div></div>
-          <div class="flex items-center justify-between flex-wrap gap-3"><button class="btn btn-outline" onclick="savePrepProgress()">Save Progress</button><button class="btn btn-primary" onclick="navigate('Rehearsal')">Continue to Rehearsal →</button></div>
         </div>
+
+        <!-- Extracting loader -->
+        <div id="prep-extracting" class="hidden">
+          <div class="card" style="padding:48px 24px;text-align:center">
+            <div class="spinner" style="margin:0 auto 16px"></div>
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">AI is reading your material…</h3>
+            <p style="font-size:13px;color:var(--s500)" id="extracting-msg">Extracting key concepts…</p>
+          </div>
+        </div>
+
+        <!-- Chat section -->
+        <div id="prep-content" class="hidden">
+          <div class="card" style="border:1.5px solid var(--v200)">
+            <!-- Chat header -->
+            <div style="background:linear-gradient(135deg,var(--v600),#4f46e5);border-radius:var(--rad) var(--rad) 0 0;padding:18px 22px 20px">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                  <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
+                  <div>
+                    <div style="font-weight:700;font-size:15px;color:white">AI Tutor</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,.75)" id="prep-mat-label">Ready to help</div>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <span class="badge badge-white" id="prep-concepts-badge" style="display:none"></span>
+                  <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;font-size:12px" onclick="clearPrepChat()">🗑 Clear</button>
+                </div>
+              </div>
+              <!-- Progress steps -->
+              <div id="prep-progress-bar" style="display:flex;align-items:flex-start;gap:0;position:relative">
+                <!-- connector line behind steps -->
+                <div style="position:absolute;top:16px;left:16px;right:16px;height:2px;background:rgba(255,255,255,.25);z-index:0"></div>
+                <div id="prep-progress-fill-line" style="position:absolute;top:16px;left:16px;height:2px;background:rgba(255,255,255,.85);z-index:1;transition:width .5s ease;width:0%"></div>
+              </div>
+            </div>
+
+            <!-- Messages area -->
+            <div id="prep-free-chat-msgs" style="display:flex;flex-direction:column;gap:14px;height:480px;overflow-y:auto;padding:20px;background:var(--s50)"></div>
+
+            <!-- Input area -->
+            <div style="padding:14px 16px;border-top:1px solid var(--border);background:white;border-radius:0 0 var(--rad) var(--rad)">
+              <div style="display:flex;gap:10px;align-items:flex-end">
+                <textarea id="prep-free-chat-input" rows="2"
+                  placeholder="Ask anything about the material… (Enter to send, Shift+Enter for new line)"
+                  style="flex:1;resize:none;font-size:14px;border-radius:10px;border:1.5px solid var(--border);padding:10px 13px;font-family:'DM Sans',sans-serif;outline:none;transition:border .15s;background:var(--s50)"
+                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendPrepFreeChat();}"
+                  onfocus="this.style.borderColor='var(--v500)';this.style.background='white'"
+                  onblur="this.style.borderColor='var(--border)';this.style.background='var(--s50)'"
+                ></textarea>
+                <button class="btn btn-primary" onclick="sendPrepFreeChat()" id="prep-free-chat-send" style="align-self:flex-end;padding:11px 20px;border-radius:10px">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Continue button -->
+          <div class="flex justify-end mt-4">
+            <button class="btn btn-primary" onclick="navigate('Rehearsal')">Continue to Rehearsal →</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -450,6 +616,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
               <!-- ── CHANGE 2: Mic button + editable transcript panel ── -->
               <div class="flex items-center gap-3 flex-wrap">
                 <button class="btn btn-blue btn-lg flex-1" id="mic-btn" onclick="toggleMic()">🎙 Speak</button>
+                <button class="btn btn-outline" onclick="moveToNext()" id="next-topic-btn" title="Ask a classmate to move to a new topic">⏭ Next Topic</button>
                 <button class="btn btn-outline" onclick="finishEarly()">End Session</button>
               </div>
               <!-- Step A: live listening indicator (shown while mic is active) -->
@@ -472,6 +639,22 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
                 </div>
               </div>
               <p style="font-size:12px;color:var(--s400);margin-top:6px" id="mic-hint">Click the mic to speak, click again to stop and edit your message.</p>
+              <!-- Text input fallback -->
+              <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)">
+                <p style="font-size:12px;font-weight:600;color:var(--s500);margin-bottom:8px">⌨️ Mic not working? Type your response instead:</p>
+                <div style="display:flex;gap:8px;align-items:flex-end">
+                  <textarea id="text-response-input" rows="2"
+                    placeholder="Type your response here… (Enter to send)"
+                    style="flex:1;resize:none;font-size:14px;border-radius:9px;border:1.5px solid var(--border);padding:9px 12px;font-family:'DM Sans',sans-serif;outline:none;transition:border .15s;background:var(--s50)"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendTextResponse();}"
+                    onfocus="this.style.borderColor='var(--v500)';this.style.background='white'"
+                    onblur="this.style.borderColor='var(--border)';this.style.background='var(--s50)'"
+                  ></textarea>
+                  <button class="btn btn-primary" onclick="sendTextResponse()" style="align-self:flex-end;padding:10px 18px">
+                    Send
+                  </button>
+                </div>
+              </div>
             </div>
             <div id="session-done" class="hidden text-center"><p style="color:var(--s600);font-weight:600;margin-bottom:12px">Session complete — great work!</p><button class="btn btn-emerald btn-lg" onclick="navigate('DiscussionPhrases')">Continue to Phrases →</button></div>
           </div></div>
@@ -482,29 +665,161 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     <!-- DISCUSSION PHRASES -->
     <div class="page" id="page-DiscussionPhrases">
       <div class="container">
-        <div class="mb-4"><div style="color:var(--e600);font-size:13px;font-weight:600;margin-bottom:6px">💬 Stage 3</div><h1 style="font-size:28px;font-weight:800">Discussion Phrases</h1><p style="color:var(--s500);margin-top:4px;font-size:14px">AI generates phrases using your material's key vocabulary.</p></div>
-        <div class="card mb-4"><div class="card-body">
-          <div class="flex items-center gap-3 flex-wrap">
-            <div style="flex:1;min-width:200px"><label class="label">Select Material</label><select id="phrases-material-select" onchange="loadPhrases()"><option value="">Choose material...</option></select></div>
-            <div style="padding-top:22px"><button class="btn btn-primary" id="gen-phrases-btn" onclick="generateAIPhrases()" disabled>✨ Extract Concepts & Vocab</button></div>
-          </div>
-        </div></div>
-        <div id="phrases-gen-loading" class="hidden"><div class="card" style="padding:32px;text-align:center"><div class="spinner" style="margin:0 auto 12px"></div><p style="font-size:13.5px;color:var(--s500)">AI is reading your material and generating contextual phrases…</p></div></div>
-        <div id="phrases-content" class="hidden">
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="phrase-cat-tabs"></div>
-          <div id="starred-section" class="card mb-4 hidden"><div class="card-header" style="padding-bottom:12px"><div class="card-title">⭐ Starred Phrases</div></div><div id="starred-list" style="padding:0 24px 16px"></div></div>
-          <div class="card mb-4">
-            <div class="card-header" style="padding-bottom:0"><div class="flex items-center justify-between flex-wrap gap-2"><div class="card-title" id="phrase-tab-title">Phrases</div><span class="badge badge-slate" id="phrase-count-badge">0 phrases</span></div></div>
-            <div class="card-body" style="padding-top:14px">
-              <div id="vocab-chips-section" class="hidden mb-4"><div style="font-size:12px;font-weight:700;color:var(--s500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">📖 Key terms — click to use:</div><div id="vocab-chips"></div></div>
-              <div id="phrases-list"></div>
-              <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px">
-                <div style="font-size:13px;font-weight:600;color:var(--s700);margin-bottom:8px">➕ Add your own phrase</div>
-                <div class="flex gap-2 items-start"><textarea id="new-phrase-input" rows="2" placeholder="Write a phrase you want to practise…" style="flex:1;resize:none"></textarea><button class="btn btn-emerald" style="align-self:flex-end" onclick="addCustomPhrase()">Add</button></div>
+        <div class="mb-6">
+          <div style="color:var(--e600);font-size:13px;font-weight:600;margin-bottom:6px">💬 Stage 3</div>
+          <h1 style="font-size:28px;font-weight:800">Phrase Stock</h1>
+          <p style="color:var(--s500);margin-top:4px;font-size:14px">Prepare sentences you can use in class.</p>
+        </div>
+
+        <!-- Material selector -->
+        <div class="card mb-5">
+          <div class="card-body">
+            <div class="flex items-center gap-3 flex-wrap">
+              <div style="flex:1;min-width:200px">
+                <label class="label">Select Material</label>
+                <select id="phrases-material-select" onchange="loadPhrases()"><option value="">Choose material...</option></select>
+              </div>
+              <div style="padding-top:22px">
+                <button class="btn btn-primary" id="gen-phrases-btn" onclick="generateAIPhrases()" disabled>✨ Generate AI Phrases</button>
               </div>
             </div>
           </div>
-          <div class="flex items-center justify-between flex-wrap gap-3"><div style="font-size:13px;color:var(--s500)" id="phrases-save-status"></div><button class="btn btn-emerald" onclick="navigate('Reflection')">Continue to Reflection →</button></div>
+        </div>
+
+        <!-- Loading -->
+        <div id="phrases-gen-loading" class="hidden">
+          <div class="card" style="padding:32px;text-align:center">
+            <div class="spinner" style="margin:0 auto 12px"></div>
+            <p style="font-size:13.5px;color:var(--s500)">Generating phrases from your material…</p>
+          </div>
+        </div>
+
+        <div id="phrases-content" class="hidden">
+          <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
+
+            <!-- Left: talk moves + phrase panel -->
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--s500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">What do you want to do?</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px" id="talk-move-grid"></div>
+
+          <!-- Phrase panel for selected talk move -->
+          <div id="phrase-panel" class="hidden">
+            <div class="card" style="border:1.5px solid var(--e100)">
+              <!-- Panel header -->
+              <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--e50);border-radius:var(--rad) var(--rad) 0 0">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div style="font-size:24px" id="panel-icon"></div>
+                    <div>
+                      <div style="font-weight:800;font-size:16px;color:var(--s900)" id="panel-label"></div>
+                      <div style="font-size:13px;color:var(--s500)" id="panel-instruction"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-body" style="padding-top:16px">
+                <!-- Starred phrases -->
+                <div id="panel-starred" class="hidden mb-4">
+                  <div style="font-size:11px;font-weight:700;color:var(--a600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">⭐ Your saved phrases</div>
+                  <div id="panel-starred-list"></div>
+                </div>
+
+                <!-- Phrase list -->
+                <div style="font-size:11px;font-weight:700;color:var(--s400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Phrases to use</div>
+                <div id="panel-phrases-list"></div>
+
+                <!-- Make it your own -->
+                <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:14px">
+                  <div style="font-size:13px;font-weight:700;color:var(--s700);margin-bottom:4px">✏️ Make it your own</div>
+                  <div style="font-size:12px;color:var(--s400);margin-bottom:10px">Click a phrase above, then edit it or describe what you want to say.</div>
+
+                  <!-- Selected phrase preview -->
+                  <div id="selected-phrase-preview" style="display:none;background:var(--e50);border:1.5px solid var(--e200);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--e700);margin-bottom:10px;display:none">
+                    <span style="font-size:11px;font-weight:700;color:var(--e600);display:block;margin-bottom:3px">Selected template:</span>
+                    <span id="selected-phrase-text"></span>
+                  </div>
+
+                  <!-- Edit box -->
+                  <textarea id="new-phrase-input" rows="3" placeholder="Select a phrase above, or write your own here…" style="width:100%;resize:none;margin-bottom:10px"></textarea>
+
+                  <!-- AI rephrase row -->
+                  <div id="ai-rephrase-row" style="display:none;background:var(--v50);border:1.5px solid var(--v200);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+                    <div style="font-size:12px;font-weight:700;color:var(--v700);margin-bottom:8px">✨ What do you want to say?</div>
+                    <div style="font-size:12px;color:var(--s500);margin-bottom:8px">Describe your idea in simple words — AI will rewrite it using the template style.</div>
+                    <textarea id="rephrase-intent-input" rows="2" placeholder="e.g. I think economic growth is more important than the environment…" style="width:100%;resize:none;font-size:13px;margin-bottom:8px"></textarea>
+                    <button class="btn btn-primary btn-sm" onclick="aiRephrasePhrase()" id="ai-rephrase-btn">✨ Rewrite for me</button>
+                  </div>
+
+                  <!-- Speak it panel -->
+                  <div id="speak-it-panel" style="display:none;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:10px;padding:14px;margin-bottom:10px">
+                    <div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:10px">🎙 Speak in your language</div>
+
+                    <!-- Language picker -->
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px" id="phrase-lang-picker">
+                      <button class="lang-btn selected" onclick="selectPhraseLang('zh-CN',this)">🇨🇳 Chinese</button>
+                      <button class="lang-btn" onclick="selectPhraseLang('es-ES',this)">🇪🇸 Spanish</button>
+                      <button class="lang-btn" onclick="selectPhraseLang('fr-FR',this)">🇫🇷 French</button>
+                      <button class="lang-btn" onclick="selectPhraseLang('de-DE',this)">🇩🇪 German</button>
+                      <button class="lang-btn" onclick="selectPhraseLang('ja-JP',this)">🇯🇵 Japanese</button>
+                      <button class="lang-btn" onclick="selectPhraseLang('ko-KR',this)">🇰🇷 Korean</button>
+                      <button class="lang-btn" onclick="selectPhraseLang('ar-SA',this)">🇸🇦 Arabic</button>
+                      <button class="lang-btn" onclick="selectPhraseLang('vi-VN',this)">🇻🇳 Vietnamese</button>
+                    </div>
+
+                    <!-- Mic button -->
+                    <div style="text-align:center;margin-bottom:12px">
+                      <div id="phrase-mic-ring" class="mic-ring idle" onclick="togglePhraseMic()" style="width:60px;height:60px;margin:0 auto 8px">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                      </div>
+                      <div style="font-size:12px;color:var(--s500)" id="phrase-mic-label">Tap to speak</div>
+                    </div>
+
+                    <!-- What you said -->
+                    <div id="phrase-source-wrap" style="display:none;margin-bottom:10px">
+                      <div style="font-size:11px;font-weight:700;color:var(--s500);margin-bottom:4px">What you said:</div>
+                      <div id="phrase-source-text" style="background:white;border:1px solid #bae6fd;border-radius:8px;padding:8px 11px;font-size:13px;color:var(--s700)">—</div>
+                    </div>
+
+                    <!-- Translation output -->
+                    <div id="phrase-trans-wrap" style="display:none;margin-bottom:10px">
+                      <div style="font-size:11px;font-weight:700;color:var(--s500);margin-bottom:4px">English translation:</div>
+                      <div id="phrase-trans-text" style="background:white;border:1.5px solid var(--v300);border-radius:8px;padding:10px 13px;font-size:14px;font-weight:600;color:var(--v700);line-height:1.6"></div>
+                      <button class="btn btn-primary btn-sm mt-2 w-full" onclick="usePhraseTrans()">Use this translation →</button>
+                    </div>
+                  </div>
+
+                  <!-- Action buttons -->
+                  <div class="flex gap-2 flex-wrap">
+                    <button class="btn btn-emerald flex-1" onclick="addCustomPhrase()">💾 Save phrase</button>
+                    <button class="btn btn-outline btn-sm" onclick="toggleAIRephrase()" id="ai-rephrase-toggle" style="display:none">✨ AI help</button>
+                    <button class="btn btn-outline btn-sm" onclick="toggleSpeakIt()" id="speak-it-toggle">🎙 Speak it</button>
+                    <button class="btn btn-ghost btn-sm" onclick="clearPhraseInput()" id="clear-phrase-btn" style="display:none">✕ Clear</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+              <div class="flex justify-end mt-4">
+                <button class="btn btn-emerald" onclick="navigate('Reflection')">Continue to Reflection →</button>
+              </div>
+            </div>
+            </div> <!-- end left column -->
+
+            <!-- Right: My Saved Phrases (always visible) -->
+            <div style="position:sticky;top:20px">
+              <div class="card" style="border:1.5px solid var(--v200)">
+                <div style="padding:14px 16px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--v600),#4f46e5);border-radius:var(--rad) var(--rad) 0 0;display:flex;align-items:center;justify-content:space-between">
+                  <div>
+                    <div style="font-weight:800;font-size:14px;color:white">📋 My Saved Phrases</div>
+                    <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px" id="saved-count-label">0 phrases saved</div>
+                  </div>
+                </div>
+                <div id="my-saved-phrases-list" style="padding:14px 16px;max-height:520px;overflow-y:auto"></div>
+              </div>
+            </div>
+
+          </div> <!-- end grid -->
         </div>
       </div>
     </div>
@@ -681,7 +996,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 
 <div id="toast-container"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
@@ -734,7 +1049,7 @@ function ud() {
 // AUTH
 // ══════════════════════════════════════════
 function showView(v) {
-  ['landing','login','register','app'].forEach(id => {
+  ['landing','login','register','flowmap','app'].forEach(id => {
     const el = document.getElementById('view-' + id);
     if (el) el.classList.toggle('hidden', id !== v);
   });
@@ -772,8 +1087,18 @@ function loginUser(email, name, role) {
   document.getElementById('nav-role-footer').textContent = role;
   document.getElementById('nav-role-label').textContent = role==='teacher' ? '📋 Teacher' : '🎓 Student';
   buildNav();
+  if (role === 'student') {
+    showView('flowmap');
+  } else {
+    showView('app');
+    navigate('TeacherHome');
+    setTimeout(updateNotifBadge, 300);
+  }
+}
+function dismissFlowMap() {
   showView('app');
-  navigate(role==='teacher' ? 'TeacherHome' : 'Home');
+  navigate('Materials');
+  setTimeout(() => openModal('add-material-modal'), 350);
   setTimeout(updateNotifBadge, 300);
 }
 function logout() {
@@ -792,7 +1117,7 @@ const STUDENT_NAV = [
   {name:'Rehearsal',  page:'Rehearsal',         icon:'mic'},
   {name:'Phrases',    page:'DiscussionPhrases', icon:'msg'},
   {name:'Reflection', page:'Reflection',        icon:'pen'},
-  {name:'Translator', page:'Translator',        icon:'translate'},
+  // Translator moved into Phrase Stock
   {name:'Notifications', page:'Notifications',  icon:'bell'},
   {name:'Achievements',  page:'Achievements',   icon:'trophy'},
   {name:'Profile',    page:'Profile',           icon:'user'},
@@ -914,9 +1239,9 @@ function toast(msg, type='') {
 // CLAUDE API
 // ══════════════════════════════════════════
 async function callClaude(prompt, system = '', maxTok = 600) {
-  const apiUrl = '/api/chat';
+  const apiUrl = 'https://api.anthropic.com/v1/messages';
   const payload = {
-    model:'claude-sonnet-4-5',
+    model:'claude-sonnet-4-6',
     max_tokens: maxTok,
     messages: [{ role: 'user', content: prompt }]
   };
@@ -924,7 +1249,7 @@ async function callClaude(prompt, system = '', maxTok = 600) {
   try {
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
       body: JSON.stringify(payload)
     });
     const data = await response.json();
@@ -936,9 +1261,9 @@ async function callClaude(prompt, system = '', maxTok = 600) {
 }
 
 async function claudeChat(history, system, maxTok = 300) {
-  const apiUrl = '/api/chat';
+  const apiUrl = 'https://api.anthropic.com/v1/messages';
   const payload = {
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: maxTok,
     system: system,
     messages: history
@@ -946,7 +1271,7 @@ async function claudeChat(history, system, maxTok = 300) {
   try {
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
       body: JSON.stringify(payload)
     });
     const data = await response.json();
@@ -979,7 +1304,7 @@ async function processFile(file) {
       pendingFile._text = result.value;
     } else if (fname.endsWith('.pdf')) {
       const buf = await file.arrayBuffer();
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
       const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
       let text = '';
       for (let i = 1; i <= pdf.numPages; i++) {
@@ -1072,7 +1397,7 @@ function populateSelects() {
   if (gbl) gbl.disabled = !document.getElementById('phrases-material-select')?.value;
 }
 
-  // ══════════════════════════════════════════
+// ══════════════════════════════════════════
 // PRE-CLASS PREP
 // ══════════════════════════════════════════
 function initPrep() { populateSelects(); }
@@ -1136,6 +1461,166 @@ async function extractConcepts(mat) {
   }
 }
 
+function renderSummaryChat(matId, mat) {
+  const el = document.getElementById('prep-summary-chat');
+  const state = PREP_STATES[matId];
+  el.innerHTML = `<div class="ai-prep-chat">
+    <div class="ai-prep-header">✨ AI Learning Supporter</div>
+    <div class="ai-prep-msgs" id="smsgs-${matId}"></div>
+    <div class="ai-prep-input-row">
+      <textarea id="sinput-${matId}" rows="2" style="flex:1;resize:none;font-size:13px" placeholder="Type your summary here…"></textarea>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-end" onclick="sendSummaryMsg('${matId}')">Send</button>
+    </div>
+  </div>`;
+  state.summaryMsgs.forEach(m => appendAIMsg('smsgs-'+matId, m.role, m.text));
+  if (!state.summaryMsgs.length) {
+    const q = `What are the main points of "${mat.title}"? Please summarise them in your own words.`;
+    appendAIMsg('smsgs-'+matId, 'ai', q);
+    state.summaryMsgs.push({role:'ai', text:q});
+  }
+}
+async function sendSummaryMsg(matId) {
+  const inp = document.getElementById('sinput-'+matId); if (!inp) return;
+  const text = inp.value.trim(); if (!text) return; inp.value = '';
+  const state = PREP_STATES[matId]; if (!state || state._summaryWorking) return;
+  appendAIMsg('smsgs-'+matId, 'user', text);
+  state.summaryMsgs.push({role:'user', text});
+  state._summaryWorking = true;
+  const d = ud(); const mat = d.materials.find(m => m.id===matId) || {};
+  const tid = 'stid'+Date.now(); showTyping('smsgs-'+matId, tid);
+  const hist = state.summaryMsgs.map(m => ({role:m.role==='ai'?'assistant':'user', content:m.text}));
+  const r = await claudeChat(hist, `You support international students summarising this material:\nTitle: ${mat.title}\nContent: ${(mat.content||mat.notes||'').substring(0,1500)}\n\nGive 1-2 sentence feedback, one encouragement, and ONE follow-up question. Under 80 words. Friendly, no bullets.`);
+  removeTyping('smsgs-'+matId); appendAIMsg('smsgs-'+matId, 'ai', r);
+  state.summaryMsgs.push({role:'ai', text:r});
+  state._summaryWorking = false;
+}
+
+function renderConceptCards(concepts, matId, d) {
+  const container = document.getElementById('concept-cards');
+  const saved = d.preparations.find(p => p.material_id===matId);
+  if (!concepts || !concepts.length) {
+    container.innerHTML = `<div class="card" style="padding:32px;text-align:center"><p style="font-size:32px;margin-bottom:8px">🔍</p><h3>No concepts extracted</h3><p style="color:var(--s500);font-size:13px">Make sure your material has content text.</p></div>`;
+    return;
+  }
+  container.innerHTML = concepts.map((c, i) => {
+    const e = saved?.concept_explanations?.[i] || {};
+    const done = e.my_explanation && e.my_explanation.length > 20;
+    return `<div class="card concept-card">
+      <div class="concept-header" onclick="toggleConceptCard(${i},'${matId}')">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+          <div class="concept-num${done?' done':''}" id="cnum-${i}">${done?'✓':i+1}</div>
+          <div class="min-w-0">
+            <span style="font-weight:700;font-size:15px">${c.concept}</span>
+            ${c.why_important?`<div style="font-size:12px;color:var(--s500);margin-top:1px">${c.why_important}</div>`:''}
+          </div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" id="cchev-${i}"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="concept-body" id="cbody-${i}" style="display:none">
+        ${c.definition?`<div style="background:var(--s50);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--s600);margin:4px 0 12px"><strong>Definition:</strong> ${c.definition}</div>`:''}
+        <div class="form-group mt-2">
+          <label class="label">💡 Explain in your own words</label>
+          <textarea rows="3" placeholder="What does this mean to you?" id="exp-${i}" oninput="updateConceptExp(${i},'${matId}',this.value)">${e.my_explanation||''}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="label">🔗 Connect to previous knowledge</label>
+          <textarea rows="2" id="conn-${i}" oninput="updateConceptConn(${i},'${matId}',this.value)">${e.connection||''}</textarea>
+        </div>
+        <div id="cchat-${i}-${matId}"></div>
+        <button class="btn btn-outline btn-sm mt-3" onclick="openConceptChat(${i},'${matId}')">✨ Discuss with AI Supporter</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleConceptCard(idx, matId) {
+  const state = PREP_STATES[matId];
+  const prev = state.expandedIdx;
+  if (prev >= 0 && prev !== idx) {
+    const ob = document.getElementById('cbody-'+prev), oc = document.getElementById('cchev-'+prev);
+    if (ob) ob.style.display = 'none';
+    if (oc) oc.innerHTML = '<path d="m6 9 6 6 6-6"/>';
+  }
+  const b = document.getElementById('cbody-'+idx), ch = document.getElementById('cchev-'+idx);
+  if (!b) return;
+  const opening = b.style.display === 'none';
+  b.style.display = opening ? 'block' : 'none';
+  if (ch) ch.innerHTML = opening ? '<path d="m18 15-6-6-6 6"/>' : '<path d="m6 9 6 6 6-6"/>';
+  state.expandedIdx = opening ? idx : -1;
+}
+function updateConceptExp(idx, matId, val) {
+  const d = ud();
+  let prep = d.preparations.find(p => p.material_id===matId);
+  if (!prep) { prep={id:'prep'+Date.now(),material_id:matId,concept_explanations:[],discussion_position:'',rehearsal_completed:false}; d.preparations.push(prep); }
+  if (!prep.concept_explanations[idx]) prep.concept_explanations[idx] = {};
+  prep.concept_explanations[idx].my_explanation = val;
+  const n = document.getElementById('cnum-'+idx);
+  if (n) { n.className='concept-num'+(val.length>20?' done':''); n.textContent = val.length>20 ? '✓' : idx+1; }
+  const mat = d.materials.find(m => m.id===matId);
+  updatePrepProgress(mat, matId, d);
+}
+function updateConceptConn(idx, matId, val) {
+  const d = ud(); const p = d.preparations.find(x => x.material_id===matId);
+  if (p && p.concept_explanations[idx]) p.concept_explanations[idx].connection = val;
+}
+async function openConceptChat(idx, matId) {
+  const el = document.getElementById(`cchat-${idx}-${matId}`); if (!el) return;
+  const state = PREP_STATES[matId];
+  if (!state.conceptStates[idx]) state.conceptStates[idx] = {msgs:[], working:false};
+  if (el.innerHTML) { el.style.display = el.style.display==='none'?'block':'none'; return; }
+  const d = ud(); const mat = d.materials.find(m=>m.id===matId); const c = mat?.ai_concepts?.[idx]; if (!c) return;
+  el.innerHTML = `<div class="ai-prep-chat mt-3">
+    <div class="ai-prep-header">✨ AI Supporter — ${c.concept}</div>
+    <div class="ai-prep-msgs" id="cmsgs-${idx}-${matId}"></div>
+    <div class="ai-prep-input-row">
+      <textarea id="cinput-${idx}-${matId}" rows="2" style="flex:1;resize:none;font-size:13px" placeholder="Explain this concept…"></textarea>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-end" onclick="sendConceptMsg(${idx},'${matId}')">Send</button>
+    </div>
+  </div>`;
+  const q = `Let's focus on **${c.concept}**. Can you explain what this means in your own words?`;
+  appendAIMsg(`cmsgs-${idx}-${matId}`, 'ai', q);
+  state.conceptStates[idx].msgs.push({role:'ai', text:q});
+}
+async function sendConceptMsg(idx, matId) {
+  const inp = document.getElementById(`cinput-${idx}-${matId}`); if (!inp) return;
+  const text = inp.value.trim(); if (!text) return; inp.value = '';
+  const state = PREP_STATES[matId]?.conceptStates?.[idx]; if (!state || state.working) return;
+  appendAIMsg(`cmsgs-${idx}-${matId}`, 'user', text);
+  state.msgs.push({role:'user', text}); state.working = true;
+  const d = ud(); const mat = d.materials.find(m=>m.id===matId); const c = mat?.ai_concepts?.[idx];
+  const tid = 'ctid'+Date.now(); showTyping(`cmsgs-${idx}-${matId}`, tid);
+  const hist = state.msgs.map(m => ({role:m.role==='ai'?'assistant':'user', content:m.text}));
+  const r = await claudeChat(hist, `Help student understand "${c?.concept}" from: ${mat?.title}\nContent excerpt: ${(mat?.content||mat?.notes||'').substring(0,1000)}\n\nFeedback: 1-2 sentences, one hint, ONE question. Under 80 words. Friendly.`);
+  removeTyping(`cmsgs-${idx}-${matId}`);
+  appendAIMsg(`cmsgs-${idx}-${matId}`, 'ai', r);
+  state.msgs.push({role:'ai', text:r}); state.working = false;
+}
+async function getPositionHint() {
+  const matId = document.getElementById('prep-material-select').value; if (!matId) return;
+  const d = ud(); const mat = d.materials.find(m=>m.id===matId); if (!mat) return;
+  const btn = document.querySelector('[onclick="getPositionHint()"]');
+  if (btn) { btn.textContent='⏳…'; btn.disabled=true; }
+  const hint = await callClaude(`Student preparing a discussion position about:\nTitle: ${mat.title}\nContent: ${(mat.content||mat.notes||'').substring(0,1200)}\nStudent's current position: "${document.getElementById('discussion-position').value||'(nothing yet)'}"\n\nGive ONE brief hint (1-2 sentences) to help them form a stronger position. Don't give the full answer.`, '', 150);
+  document.getElementById('position-ai-hint').textContent = '💡 ' + (hint || 'Think about which concept you feel most strongly about — that could anchor your position.');
+  document.getElementById('position-ai-hint').classList.remove('hidden');
+  if (btn) { btn.textContent='✨ Get a hint from AI'; btn.disabled=false; }
+}
+function updatePrepProgress(mat, matId, d) {
+  const p = d.preparations.find(x => x.material_id===matId);
+  const total = (mat?.ai_concepts||[]).length;
+  const done = p?.concept_explanations?.filter(c=>c?.my_explanation&&c.my_explanation.length>20).length||0;
+  const pct = total>0 ? Math.round(done/total*100) : 0;
+  const ep=document.getElementById('prep-pct'), eb=document.getElementById('prep-bar'), et=document.getElementById('prep-text');
+  if(ep) ep.textContent=pct+'%'; if(eb) eb.style.width=pct+'%';
+  if(et) et.textContent = total ? `${done} of ${total} concepts explained` : 'Work through the concepts below';
+}
+function savePrepProgress() {
+  const d = ud(); const matId = document.getElementById('prep-material-select').value; if (!matId) return;
+  let p = d.preparations.find(x=>x.material_id===matId);
+  if (!p) { p={id:'prep'+Date.now(),material_id:matId,concept_explanations:[],discussion_position:'',rehearsal_completed:false}; d.preparations.push(p); }
+  p.discussion_position = document.getElementById('discussion-position').value;
+  toast('Progress saved!','success');
+}
+
 // AI chat helpers
 let typingMap = {};
 function appendAIMsg(containerId, role, text) {
@@ -1171,6 +1656,7 @@ const PREP_STEPS = [
 function renderPrepSteps(currentStep) {
   const bar = document.getElementById('prep-progress-bar');
   if (!bar) return;
+  // Clear old step nodes (keep the connector lines which are first 2 children)
   const nodes = bar.querySelectorAll('.prep-step');
   nodes.forEach(n => n.remove());
 
@@ -1187,6 +1673,7 @@ function renderPrepSteps(currentStep) {
     bar.appendChild(div);
   });
 
+  // Update fill line width
   const fillLine = document.getElementById('prep-progress-fill-line');
   if (fillLine) {
     const pct = currentStep <= 1 ? 0 : ((currentStep - 1) / (PREP_STEPS.length - 1)) * 100;
@@ -1195,6 +1682,7 @@ function renderPrepSteps(currentStep) {
 }
 
 function initPrepFreeChat(matId, mat) {
+  // Always start fresh when material is loaded/changed
   PREP_CHAT_STATES[matId] = { msgs: [], working: false, currentStep: 1 };
   const state = PREP_CHAT_STATES[matId];
   const welcome = `Hi! I've read **${mat.title}**. Let's work through it together. Start by asking me anything — what a concept means, what the main argument is, or anything you're unsure about.`;
@@ -1245,6 +1733,7 @@ async function sendPrepFreeChat() {
   const sendBtn = document.getElementById('prep-free-chat-send');
   if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '…'; }
 
+  // Typing indicator
   const typingId = 'pfc-typing-' + Date.now();
   const typingDiv = document.createElement('div');
   typingDiv.id = typingId;
@@ -1259,6 +1748,7 @@ async function sendPrepFreeChat() {
   const concepts = (mat?.ai_concepts || []).map(c => typeof c === 'string' ? c : c.concept).join(', ');
   const content = (mat?.content || mat?.notes || '').substring(0, 3000);
 
+  // Strip any AI messages that contain stage-based language before sending history
   const stagePattern = /stage\s*\d|step\s*\d|prior knowledge|self.expla|explain.*back|in your own words/i;
   const cleanMsgs = state.msgs.filter(m => !(m.role === 'ai' && stagePattern.test(m.text)));
   const history = cleanMsgs.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
@@ -1288,6 +1778,7 @@ Rules:
     let reply = await claudeChat(history, system, 400);
     document.getElementById(typingId)?.remove();
 
+    // Parse and strip step signal
     const stepMatch = reply.match(/\[STEP:(\d)\]/);
     if (stepMatch) {
       const newStep = parseInt(stepMatch[1]);
@@ -1481,6 +1972,7 @@ function usePhraseTrans() {
   toast('Translation added — edit and save!', 'success');
 }
 
+// ── PHRASE STOCK: AI REPHRASE ──
 async function aiRephrasePhrase() {
   const intent = document.getElementById('rephrase-intent-input')?.value.trim();
   if (!intent) { toast('Please describe what you want to say', 'error'); return; }
@@ -1589,6 +2081,21 @@ async function aiRespond(interpreted){
   td.remove();const mid='ai'+Date.now();chat.appendChild(createAIBubble(sp,reply,mid));scrollChat();
   setTimeout(()=>togglePlay(mid,reply),300);
 }
+async function moveToNext(){
+  const btn=document.getElementById('next-topic-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Moving…';}
+  const sp=pickNextSpeaker();
+  const chat=document.getElementById('chat-area');
+  const tid='t'+Date.now();const td=document.createElement('div');td.className='msg';td.id=tid;
+  td.innerHTML=`<div class="msg-avatar" style="background:${sp.color};color:white">${sp.name[0]}</div><div><div style="font-size:11.5px;color:var(--s400);margin-bottom:5px">${sp.name}</div><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+  chat.appendChild(td);scrollChat();
+  let reply='';
+  try{reply=await callClaude(`You are ${sp.name}, a student in a seminar. The group has been discussing this material:\n${sessionMaterialContext}\n\nPivot the conversation to a NEW aspect or concept from the material that hasn't been discussed yet. Start with a brief transition phrase (e.g. "Actually, I want to bring up…" or "That reminds me, what about…"). End with ONE question directed at the group. Max 3 sentences. No bullets.`);}
+  catch(e){reply="Actually, I want to bring up a different angle — what do you think about the broader implications of this topic?";}
+  td.remove();const mid='ai'+Date.now();chat.appendChild(createAIBubble(sp,reply,mid));scrollChat();
+  setTimeout(()=>togglePlay(mid,reply),300);
+  if(btn){btn.disabled=false;btn.textContent='⏭ Next Topic';}
+}
 async function interpretSpeech(raw){
   if(!raw.trim())return raw;
   try{const r=await callClaude(`A student in a seminar about:\n${sessionMaterialContext}\n\nSpeech recognition gave: "${raw}"\n\nCorrect obvious mis-transcriptions based on context. Return ONLY the corrected version, no explanation.`,'',200);return r.trim()||raw;}catch(e){return raw;}
@@ -1670,6 +2177,15 @@ function cancelEditedTranscript() {
   document.getElementById('edit-transcript-wrap').classList.add('hidden');
   document.getElementById('edit-transcript-input').value = '';
   liveTranscript = '';
+}
+async function sendTextResponse() {
+  var inp = document.getElementById('text-response-input');
+  var text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  addUserMsg(text);
+  var interp = await interpretSpeech(text);
+  aiRespond(interp);
 }
 
 function resetMicUI() {
@@ -1801,13 +2317,90 @@ function speakText(text, gender, onEnd) {
 // DISCUSSION PHRASES
 // ══════════════════════════════════════════
 const PHRASE_TEMPLATES=[
-  {id:'start',    label:'Starting',    icon:'🗣', phrases:['I would like to start by saying…','One thing that stood out to me was…','To begin with, I believe…','I found it interesting that…']},
-  {id:'agree',    label:'Agreeing',    icon:'✅', phrases:['I completely agree because…','I share that view, particularly when it comes to…','Exactly — and I would add that…','That resonates with what I read about…']},
-  {id:'build',    label:'Building On', icon:'🔗', phrases:['Building on what you just said…','To add to that point…','I would like to extend this idea by…','Following on from that…']},
-  {id:'disagree', label:'Disagreeing', icon:'💡', phrases:['I see this differently because…','I appreciate that, but I would argue…','With respect, I think we also need to consider…','I understand the reasoning, however…']},
-  {id:'clarify',  label:'Clarifying',  icon:'❓', phrases:['Could you elaborate on that?','Did you mean…?','Could you give an example?','Can I check — are you saying that…?']},
-  {id:'evidence', label:'Evidence',    icon:'📖', phrases:['According to the reading…','The material suggests that…','As the author argues…','Drawing from the material, we can see that…']},
-  {id:'conclude', label:'Concluding',  icon:'🎯', phrases:['To summarise my point…','In conclusion, I believe…','Overall, the key takeaway is…','Coming back to the question, I would argue…']},
+  {
+    id:'share',
+    label:'Share My Idea',
+    icon:'💡',
+    desc:'Tell the class what you think about the topic.',
+    instruction:'Say what you think.',
+    phrases:[
+      'I think that…',
+      'In my opinion,…',
+      'One thing I noticed is…',
+      'I believe that…',
+      'What stood out to me was…',
+    ]
+  },
+  {
+    id:'add',
+    label:'Add to This',
+    icon:'➕',
+    desc:'Say something that supports or extends what someone else said.',
+    instruction:'Build on what was just said.',
+    phrases:[
+      'I agree, and I would also add that…',
+      'That\'s a good point. Another thing is…',
+      'To build on that,…',
+      'Yes, and I think…',
+      'Following on from that,…',
+    ]
+  },
+  {
+    id:'differ',
+    label:'I See It Differently',
+    icon:'🔄',
+    desc:'Politely share a different view from what was said.',
+    instruction:'Give your different opinion.',
+    phrases:[
+      'I see it a little differently. I think…',
+      'That\'s interesting, but I would argue…',
+      'I\'m not sure I agree. In my view,…',
+      'I understand that, but another way to look at it is…',
+      'I think there is another side to this…',
+    ]
+  },
+  {
+    id:'ask',
+    label:'Ask the Class',
+    icon:'🙋',
+    desc:'Ask a question to get others thinking or talking.',
+    instruction:'Get the discussion going.',
+    phrases:[
+      'What do you think about…?',
+      'Does anyone have a different view on…?',
+      'I\'m curious — what do others think?',
+      'Can I ask — why do you think that?',
+      'What would happen if…?',
+    ]
+  },
+  {
+    id:'check',
+    label:'Check I Understand',
+    icon:'🔍',
+    desc:'Ask someone to explain what they mean more clearly.',
+    instruction:'Ask for a clearer explanation.',
+    phrases:[
+      'Could you explain what you mean by…?',
+      'Are you saying that…?',
+      'Can you give an example?',
+      'I\'m not sure I understood. Could you say that again?',
+      'Do you mean…?',
+    ]
+  },
+  {
+    id:'together',
+    label:'Bring It Together',
+    icon:'🎯',
+    desc:'Sum up the main ideas from the discussion so far.',
+    instruction:'Summarise what the group has said.',
+    phrases:[
+      'So, to sum up what we have said…',
+      'It seems like the main ideas are…',
+      'We all seem to agree that…',
+      'One thing we can take from this is…',
+      'To bring this together,…',
+    ]
+  },
 ];
 
 function getMatPhrasesStore(matId){
@@ -1820,9 +2413,9 @@ function getMatPhrasesStore(matId){
   return d.phrases[matId];
 }
 
-let phraseView = 'concepts';
+let phraseView = 'share';
 
-function initPhrases(){ populateSelects(); phraseView='concepts'; }
+function initPhrases(){ populateSelects(); phraseView='share'; }
 
 function loadPhrases(){
   const matId = document.getElementById('phrases-material-select').value;
@@ -1835,183 +2428,234 @@ function loadPhrases(){
   }
   if(btn) btn.disabled=false;
   getMatPhrasesStore(matId);
-  phraseView='concepts';
   document.getElementById('phrases-content').classList.remove('hidden');
-  renderPhrasesTabs(); renderPhrasesMain();
+  renderTalkMoveGrid();
+  openTalkMove(phraseView);
+  renderMySavedPhrases();
+}
+
+function renderTalkMoveGrid(){
+  const grid = document.getElementById('talk-move-grid');
+  if(!grid) return;
+  grid.innerHTML = PHRASE_TEMPLATES.map(t => `
+    <button onclick="openTalkMove('${t.id}')" id="tm-btn-${t.id}"
+      style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px;border-radius:12px;border:2px solid ${phraseView===t.id?'var(--e600)':'var(--border)'};background:${phraseView===t.id?'var(--e50)':'white'};cursor:pointer;text-align:left;transition:all .18s;font-family:'DM Sans',sans-serif;box-shadow:${phraseView===t.id?'0 2px 12px rgba(5,150,105,.12)':'0 1px 4px rgba(0,0,0,.05)'}">
+      <div style="font-size:22px">${t.icon}</div>
+      <div style="font-size:13px;font-weight:700;color:${phraseView===t.id?'var(--e600)':'var(--s800)'};line-height:1.3">${t.label}</div>
+      <div style="font-size:11.5px;color:var(--s400);line-height:1.4">${t.desc}</div>
+    </button>`).join('');
+}
+
+function openTalkMove(id){
+  phraseView = id;
+  renderTalkMoveGrid();
+  const t = PHRASE_TEMPLATES.find(x=>x.id===id);
+  if(!t) return;
+  const store = getMatPhrasesStore(currentPhraseMatId);
+  const phrases = store.templatePhrases[id] || [];
+  const starred = phrases.filter(p=>p.starred);
+
+  document.getElementById('panel-icon').textContent = t.icon;
+  document.getElementById('panel-label').textContent = t.label;
+  document.getElementById('panel-instruction').textContent = t.instruction;
+
+  // Starred section
+  const starredSec = document.getElementById('panel-starred');
+  const starredList = document.getElementById('panel-starred-list');
+  if(starred.length){
+    starredSec.classList.remove('hidden');
+    starredList.innerHTML = starred.map((p,i)=>{
+      const row = document.createElement('div');
+      row.className = 'phrase-row';
+      row.style.cursor = 'pointer';
+      row.innerHTML = `<button class="phrase-star" onclick="event.stopPropagation();toggleStar('${id}',${phrases.indexOf(p)})">⭐</button><span class="phrase-text">${p.text}</span>`;
+      row.addEventListener('click', () => selectPhrase(p.text, row));
+      return row.outerHTML;
+    }).join('');
+  } else {
+    starredSec.classList.add('hidden');
+  }
+
+  // All phrases — build as DOM nodes so text content is safe
+  const listEl = document.getElementById('panel-phrases-list');
+  listEl.innerHTML = '';
+  phrases.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'phrase-row';
+    row.style.cursor = 'pointer';
+
+    const star = document.createElement('button');
+    star.className = 'phrase-star';
+    star.textContent = p.starred ? '⭐' : '☆';
+    star.onclick = (e) => { e.stopPropagation(); toggleStar(id, i); };
+
+    const span = document.createElement('span');
+    span.className = 'phrase-text';
+    span.textContent = p.text;
+    if(p.custom){ const tag = document.createElement('span'); tag.className='phrase-tag'; tag.style.cssText='background:var(--e50);color:var(--e600)'; tag.textContent='Mine'; span.appendChild(tag); }
+    else if(p.ai){ const tag = document.createElement('span'); tag.className='phrase-tag'; tag.textContent='AI'; span.appendChild(tag); }
+
+    row.appendChild(star);
+    row.appendChild(span);
+
+    if(p.custom){
+      const del = document.createElement('button');
+      del.className = 'phrase-del';
+      del.textContent = '✕';
+      del.onclick = (e) => { e.stopPropagation(); deletePhrase(id, i); };
+      row.appendChild(del);
+    }
+
+    row.addEventListener('click', () => selectPhrase(p.text, row));
+    listEl.appendChild(row);
+  });
+
+  document.getElementById('phrase-panel').classList.remove('hidden');
+}
+
+function toggleStar(catId, idx){
+  const store = getMatPhrasesStore(currentPhraseMatId);
+  const phrases = store.templatePhrases[catId];
+  if(!phrases||!phrases[idx]) return;
+  phrases[idx].starred = !phrases[idx].starred;
+  openTalkMove(catId);
+}
+
+function deletePhrase(catId, idx){
+  const store = getMatPhrasesStore(currentPhraseMatId);
+  store.templatePhrases[catId].splice(idx,1);
+  openTalkMove(catId);
+}
+
+function addCustomPhrase(){
+  const text = document.getElementById('new-phrase-input').value.trim();
+  if(!text||!currentPhraseMatId) return;
+  const store = getMatPhrasesStore(currentPhraseMatId);
+  if(!store.templatePhrases[phraseView]) store.templatePhrases[phraseView]=[];
+  store.templatePhrases[phraseView].push({text,starred:true,custom:true});
+  document.getElementById('new-phrase-input').value='';
+  clearPhraseInput();
+  openTalkMove(phraseView);
+  renderMySavedPhrases();
+  toast('Phrase saved!','success');
+}
+
+function renderMySavedPhrases(){
+  const listEl = document.getElementById('my-saved-phrases-list');
+  if(!listEl) return;
+  if(!currentPhraseMatId){ listEl.innerHTML = '<p style="color:var(--s400);font-size:13px">Select a material first.</p>'; return; }
+  const store = getMatPhrasesStore(currentPhraseMatId);
+
+  // Collect all saved (starred or custom) phrases grouped by talk move
+  const groups = PHRASE_TEMPLATES.map(t => {
+    const phrases = (store.templatePhrases[t.id] || []).filter(p => p.starred || p.custom);
+    return { ...t, saved: phrases };
+  }).filter(g => g.saved.length > 0);
+
+  // Update count label
+  const totalSaved = groups.reduce((s,g)=>s+g.saved.length,0);
+  const countLbl = document.getElementById('saved-count-label');
+  if(countLbl) countLbl.textContent = totalSaved + ' phrase' + (totalSaved!==1?'s':'') + ' saved';
+
+  if(!groups.length){
+    listEl.innerHTML = `<div style="text-align:center;padding:32px 16px">
+      <div style="font-size:36px;margin-bottom:10px">📭</div>
+      <div style="font-weight:700;color:var(--s600);margin-bottom:6px">No saved phrases yet</div>
+      <p style="font-size:13px;color:var(--s400)">Click a phrase and hit <strong>💾 Save phrase</strong>, or star ⭐ any phrase to save it here.</p>
+    </div>`;
+    return;
+  }
+
+  listEl.innerHTML = '';
+  groups.forEach(g => {
+    const section = document.createElement('div');
+    section.style.marginBottom = '18px';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)';
+    header.innerHTML = `<span style="font-size:18px">${g.icon}</span><span style="font-size:13px;font-weight:700;color:var(--s700)">${g.label}</span><span style="font-size:11px;color:var(--s400)">${g.saved.length} phrase${g.saved.length!==1?'s':''}</span>`;
+    section.appendChild(header);
+
+    g.saved.forEach((p, i) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s50);border-radius:9px;margin-bottom:6px;border:1px solid var(--border)';
+
+      const text = document.createElement('span');
+      text.style.cssText = 'flex:1;font-size:13.5px;color:var(--s700);line-height:1.55';
+      text.textContent = p.text;
+
+      const badge = document.createElement('span');
+      badge.className = p.custom ? 'badge badge-emerald' : 'badge badge-violet';
+      badge.textContent = p.custom ? 'Mine' : '⭐';
+      badge.style.flexShrink = '0';
+
+      const useBtn = document.createElement('button');
+      useBtn.className = 'btn btn-outline btn-sm';
+      useBtn.style.flexShrink = '0';
+      useBtn.textContent = 'Use';
+      useBtn.onclick = () => {
+        phraseView = g.id;
+        openTalkMove(g.id);
+        selectPhrase(p.text, null);
+        toggleMySavedPhrases();
+        document.getElementById('phrase-panel').scrollIntoView({ behavior:'smooth' });
+      };
+
+      row.appendChild(text);
+      row.appendChild(badge);
+      row.appendChild(useBtn);
+      section.appendChild(row);
+    });
+
+    listEl.appendChild(section);
+  });
 }
 
 async function generateAIPhrases(){
   if(!currentPhraseMatId) return;
   const d=ud(); const mat=d.materials.find(m=>m.id===currentPhraseMatId); if(!mat) return;
-  const btn=document.getElementById('gen-phrases-btn'); btn.disabled=true; btn.textContent='⏳ Extracting…';
+  const btn=document.getElementById('gen-phrases-btn'); btn.disabled=true; btn.textContent='⏳ Generating…';
   document.getElementById('phrases-gen-loading').classList.remove('hidden');
   document.getElementById('phrases-content').classList.add('hidden');
   const content=(mat.content||mat.notes||'').substring(0,4000);
   const store=getMatPhrasesStore(currentPhraseMatId);
 
   try{
+    const moveIds = PHRASE_TEMPLATES.map(t=>t.id).join(',');
+    const moveLabels = PHRASE_TEMPLATES.map(t=>`"${t.id}": ${t.label} (${t.instruction})`).join('\n');
     const raw=await callClaude(
-      `You are an academic language coach. Read this material carefully and extract 5-8 key concepts or terms that are SPECIFIC to this text.\n\nTitle: ${mat.title}\nContent: ${content}\n\nFor each concept, also write a realistic discussion sentence a student could say in a seminar using that exact term.\n\nReturn ONLY a valid JSON array (no markdown, no preamble):\n[{"term":"Exact term from the text","definition":"Plain 1-sentence definition based on the text.","example":"A natural sentence a student might say in discussion using this term."}]\n\nOnly extract terms actually present in the text. Do not invent generic academic terms.`,
-      'Return only valid JSON array. No markdown, no explanation.', 1400
+      `You are helping international university students prepare phrases for a seminar discussion.
+
+Material title: "${mat.title}"
+Material content: ${content}
+
+Generate 2 natural, simple discussion phrases for each of these 6 talk move categories. Each phrase should:
+- Use vocabulary and ideas from the material above
+- Be simple enough for a B1 English speaker
+- Be a sentence starter (end with … if incomplete)
+- Feel natural to say out loud in class
+
+Categories:
+${moveLabels}
+
+Return ONLY valid JSON (no markdown):
+{"share":["phrase1","phrase2"],"add":["phrase1","phrase2"],"differ":["phrase1","phrase2"],"ask":["phrase1","phrase2"],"check":["phrase1","phrase2"],"together":["phrase1","phrase2"]}`,
+      'Return only valid JSON. No markdown.', 900
     );
     const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
-    if(Array.isArray(parsed)&&parsed.length) store.concepts=parsed;
-  }catch(e){ store.concepts=[]; }
-
-  try{
-    const raw2=await callClaude(
-      `Read this academic material and list 10-15 important vocabulary words or short phrases that appear in the text and are specific to its subject matter.\n\nTitle: ${mat.title}\nContent: ${content}\n\nReturn ONLY a JSON array of strings. No markdown, no preamble. Example: ["term1","term2"]`,
-      'Return only valid JSON array of strings. No markdown.', 500
-    );
-    store.vocab=JSON.parse(raw2.replace(/```json|```/g,'').trim());
-  }catch(e){ store.vocab=[]; }
-
-  try{
-    const conceptsList=(store.concepts||[]).map(c=>c.term).join(', ');
-    const vocabList=(store.vocab||[]).slice(0,8).join(', ');
-    const raw3=await callClaude(
-      `You are a discussion coach helping students use language from their reading.\n\nMaterial: "${mat.title}"\nKey concepts from the text: ${conceptsList}\nKey vocab from the text: ${vocabList}\n\nGenerate 2 natural discussion sentence starters for each of these 7 categories. Each sentence should naturally incorporate vocabulary or concepts from THIS specific material where appropriate.\n\nCategories: starting, agreeing, building_on, disagreeing, clarifying, evidence, concluding\n\nReturn ONLY valid JSON (no markdown):\n{"starting":["phrase1","phrase2"],"agreeing":["phrase1","phrase2"],"building_on":["phrase1","phrase2"],"disagreeing":["phrase1","phrase2"],"clarifying":["phrase1","phrase2"],"evidence":["phrase1","phrase2"],"concluding":["phrase1","phrase2"]}`,
-      'Return only valid JSON object. No markdown.', 1000
-    );
-    const catMap={starting:'start',agreeing:'agree',building_on:'build',disagreeing:'disagree',clarifying:'clarify',evidence:'evidence',concluding:'conclude'};
-    const parsed3=JSON.parse(raw3.replace(/```json|```/g,'').trim());
-    Object.entries(parsed3).forEach(([key,phrases])=>{
-      const catId=catMap[key]; if(!catId) return;
-      const existing=store.templatePhrases[catId]||[];
+    Object.entries(parsed).forEach(([id,phrases])=>{
+      if(!store.templatePhrases[id]) store.templatePhrases[id]=[];
       const aiPhrases=phrases.map(t=>({text:t,starred:false,custom:false,ai:true}));
-      store.templatePhrases[catId]=[...aiPhrases,...existing.filter(p=>!p.ai)];
+      store.templatePhrases[id]=[...aiPhrases,...store.templatePhrases[id].filter(p=>!p.ai)];
     });
-  }catch(e){}
-
-  mat.ai_concepts = store.concepts.map(c=>({concept:c.term,definition:c.definition,why_important:'Key term from the material relevant to seminar discussion.'}));
-  mat.ai_vocab = store.vocab;
+    toast('AI phrases added!','success');
+  }catch(e){ toast('Could not generate phrases','error'); }
 
   document.getElementById('phrases-gen-loading').classList.add('hidden');
   document.getElementById('phrases-content').classList.remove('hidden');
-  btn.disabled=false; btn.textContent='✨ Re-extract';
-  phraseView='concepts';
-  renderPhrasesTabs(); renderPhrasesMain();
-  toast('Concepts & vocabulary extracted from material!','success');
-}
-
-function renderPhrasesTabs(){
-  const store=getMatPhrasesStore(currentPhraseMatId);
-  const tabs=[
-    {id:'concepts', label:`🧠 Concepts & Vocab`, count: store.concepts.length||'—'},
-    ...PHRASE_TEMPLATES.map(c=>({id:c.id, label:`${c.icon} ${c.label}`, count:(store.templatePhrases[c.id]||[]).length})),
-  ];
-  document.getElementById('phrase-cat-tabs').innerHTML=tabs.map(t=>`<button class="phrase-cat-tab${phraseView===t.id?' active':''}" onclick="switchPhraseView('${t.id}')">${t.label} <span style="background:rgba(0,0,0,.1);padding:1px 6px;border-radius:99px;font-size:11px">${t.count}</span></button>`).join('');
-}
-
-function switchPhraseView(id){ phraseView=id; renderPhrasesTabs(); renderPhrasesMain(); }
-
-function renderPhrasesMain(){
-  if(phraseView==='concepts') renderConceptsVocabPanel();
-  else renderTemplateCatPanel(phraseView);
-}
-
-function renderConceptsVocabPanel(){
-  const store=getMatPhrasesStore(currentPhraseMatId);
-  document.getElementById('phrase-tab-title').textContent='🧠 Key Concepts & Vocabulary';
-  document.getElementById('phrase-count-badge').textContent=store.concepts.length+' concepts';
-  document.getElementById('vocab-chips-section').classList.add('hidden');
-
-  const listEl=document.getElementById('phrases-list');
-  if(!store.concepts.length){
-    listEl.innerHTML=`<div style="text-align:center;padding:32px 16px;color:var(--s400)">
-      <div style="font-size:36px;margin-bottom:8px">🔍</div>
-      <div style="font-weight:700;font-size:15px;color:var(--s600);margin-bottom:6px">No concepts extracted yet</div>
-      <p style="font-size:13px;margin-bottom:16px">Click <strong>✨ Extract Concepts & Vocab</strong> to analyse your material.</p>
-    </div>`; return;
-  }
-
-  let html=`<div style="margin-bottom:18px">`;
-  store.concepts.forEach((c,i)=>{
-    html+=`<div style="background:white;border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,.05)">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <span style="font-weight:800;font-size:15px;color:var(--s900)">${c.term}</span>
-            <span class="badge badge-violet" style="font-size:10px">Key Term</span>
-          </div>
-          <p style="font-size:13.5px;color:var(--s600);margin-bottom:8px;line-height:1.55">${c.definition}</p>
-          ${c.example?`<div style="background:var(--v50);border-left:3px solid var(--v400);border-radius:0 8px 8px 0;padding:8px 12px;font-size:13px;color:var(--v700);font-style:italic">"${c.example}"</div>`:''}
-        </div>
-        <button onclick="useTermInPhrase('${escAttr(c.term)}')" class="btn btn-outline btn-sm" style="flex-shrink:0;white-space:nowrap">+ Use in phrase</button>
-      </div>
-    </div>`;
-  });
-  html+=`</div>`;
-
-  if(store.vocab.length){
-    html+=`<div style="margin-bottom:18px">
-      <div style="font-size:12px;font-weight:700;color:var(--s500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">📖 Additional Vocabulary</div>
-      <div>${store.vocab.map(v=>`<span class="vocab-chip" onclick="useTermInPhrase('${escAttr(v)}')">${v} <span style="opacity:.5;font-size:10px">→ phrase</span></span>`).join('')}</div>
-    </div>`;
-  }
-
-  listEl.innerHTML=html;
-}
-
-function useTermInPhrase(term){
-  phraseView='start';
-  renderPhrasesTabs(); renderPhrasesMain();
-  const inp=document.getElementById('new-phrase-input');
-  if(inp){ inp.value=`${term} `; inp.focus(); }
-}
-
-function renderTemplateCatPanel(catId){
-  const store=getMatPhrasesStore(currentPhraseMatId);
-  const cat=PHRASE_TEMPLATES.find(c=>c.id===catId);
-  const phrases=store.templatePhrases[catId]||[];
-  document.getElementById('phrase-tab-title').textContent=`${cat?.icon||''} ${cat?.label||''} Phrases`;
-  document.getElementById('phrase-count-badge').textContent=`${phrases.length} phrase${phrases.length!==1?'s':''}`;
-
-  const chipSec=document.getElementById('vocab-chips-section'), chipEl=document.getElementById('vocab-chips');
-  const vocab=[...((getMatPhrasesStore(currentPhraseMatId).concepts||[]).map(c=>c.term)), ...(getMatPhrasesStore(currentPhraseMatId).vocab||[])];
-  if(vocab.length){
-    chipSec.classList.remove('hidden');
-    chipEl.innerHTML=vocab.map(v=>`<span class="vocab-chip" onclick="insertVocab('${escAttr(v)}')">${v} <span style="opacity:.5;font-size:10px">+</span></span>`).join('');
-  } else chipSec.classList.add('hidden');
-
-  const listEl=document.getElementById('phrases-list');
-  listEl.innerHTML=phrases.map((p,i)=>`<div class="phrase-row">
-    <button class="phrase-star" onclick="toggleTemplateStar('${catId}',${i})">${p.starred?'⭐':'☆'}</button>
-    <span class="phrase-text">${p.text}${p.custom?'<span class="phrase-tag" style="background:var(--e50);color:var(--e600)">Custom</span>':''}</span>
-    <button class="phrase-del" onclick="deleteTemplatePhrase('${catId}',${i})">✕</button>
-  </div>`).join('');
-}
-
-function toggleTemplateStar(catId,idx){
-  const store=getMatPhrasesStore(currentPhraseMatId);
-  const phrases=store.templatePhrases[catId]; if(!phrases||!phrases[idx])return;
-  phrases[idx].starred=!phrases[idx].starred;
-  renderTemplateCatPanel(catId); renderStarred();
-}
-function deleteTemplatePhrase(catId,idx){
-  const store=getMatPhrasesStore(currentPhraseMatId);
-  store.templatePhrases[catId].splice(idx,1);
-  renderTemplateCatPanel(catId); renderPhrasesTabs();
-}
-function renderStarred(){
-  const store=getMatPhrasesStore(currentPhraseMatId);
-  const starred=Object.entries(store.templatePhrases).flatMap(([cat,arr])=>arr.filter(p=>p.starred).map(p=>({...p,cat})));
-  const sec=document.getElementById('starred-section'),list=document.getElementById('starred-list');
-  if(!starred.length){sec.classList.add('hidden');return;}
-  sec.classList.remove('hidden');
-  list.innerHTML=starred.map(p=>`<div class="phrase-row"><span>⭐</span><span class="phrase-text">${p.text}<span class="phrase-tag">${PHRASE_TEMPLATES.find(c=>c.id===p.cat)?.label||p.cat}</span></span></div>`).join('');
-}
-function insertVocab(term){const inp=document.getElementById('new-phrase-input');inp.value=(inp.value+' '+term).trim()+' ';inp.focus();}
-function addCustomPhrase(){
-  const text=document.getElementById('new-phrase-input').value.trim(); if(!text||!currentPhraseMatId)return;
-  const store=getMatPhrasesStore(currentPhraseMatId);
-  const catId=phraseView==='concepts'?'start':phraseView;
-  if(!store.templatePhrases[catId])store.templatePhrases[catId]=[];
-  store.templatePhrases[catId].push({text,starred:false,custom:true});
-  document.getElementById('new-phrase-input').value='';
-  phraseView=catId; renderPhrasesTabs(); renderPhrasesMain();
-  document.getElementById('phrases-save-status').textContent='✓ Saved';
-  setTimeout(()=>{const el=document.getElementById('phrases-save-status');if(el)el.textContent='';},2000);
+  btn.disabled=false; btn.textContent='✨ Re-generate';
+  renderTalkMoveGrid();
+  openTalkMove(phraseView);
 }
 
 // ══════════════════════════════════════════
@@ -2472,11 +3116,6 @@ function drHighlight(id,col){const s=window['_dr_'+id][col];const el=document.ge
 function drRefreshPreview(id){const st=window['_dr_'+id];const el=document.getElementById(id+'-preview');if(el)el.textContent=`${st.d.items[st.d.idx]} / ${st.m.items[st.m.idx]} / ${(st.y.items[st.y.idx]||'').slice(2)}`;}
 function drToggle(id){const popup=document.getElementById(id+'-popup');const trigger=document.getElementById(id+'-trigger');const opening=popup.hidden;document.querySelectorAll('.dr-popup:not([hidden])').forEach(p=>p.hidden=true);document.querySelectorAll('.dr-trigger.active').forEach(t=>t.classList.remove('active'));if(opening){if(!window['_dr_'+id])drInit(id);popup.hidden=false;trigger.classList.add('active');const rect=trigger.getBoundingClientRect();popup.style.left=rect.left+'px';popup.style.top=(rect.bottom+6)+'px';popup.style.width=Math.max(rect.width,280)+'px';const st=window['_dr_'+id];['d','m','y'].forEach(c=>{const el=document.getElementById(id+'-'+c);if(el){el.scrollTop=st[c].idx*DR_IH;drHighlight(id,c);}});drRefreshPreview(id);}}
 function drConfirm(id,hiddenId){const st=window['_dr_'+id];['d','m','y'].forEach(c=>{const el=document.getElementById(id+'-'+c);if(el)st[c].idx=Math.max(0,Math.min(st[c].items.length-1,Math.round(el.scrollTop/DR_IH)));});const dd=st.d.items[st.d.idx];const mm=String(DR_MONTHS.indexOf(st.m.items[st.m.idx])+1).padStart(2,'0');const yyyy=st.y.items[st.y.idx];const hel=document.getElementById(hiddenId);if(hel)hel.value=`${yyyy}-${mm}-${dd}`;const del=document.getElementById(id+'-display');if(del)del.textContent=`${dd} / ${st.m.items[st.m.idx]} / ${yyyy.slice(2)}`;const tel=document.getElementById(id+'-trigger');if(tel){tel.classList.add('has-value');tel.classList.remove('active');}document.getElementById(id+'-popup').hidden=true;}
-document.addEventListener('click',e=>{document.querySelectorAll('.dr-popup:not([hidden])').forEach(p=>{const id=p.id.replace('-popup','');const t=document.getElementById(id+'-trigger');if(t&&!p.contains(e.target)&&!t.contains(e.target)){p.hidden=true;t.classList.remove('active');}});});
-function formatDate(iso){if(!iso)return'';const[y,m,dd]=iso.split('-');return`${dd} ${DR_MONTHS[parseInt(m)-1]||m} ${y.slice(2)}`;}
-
-// Preload TTS voices
-if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
 </script>
 </body>
 </html>
