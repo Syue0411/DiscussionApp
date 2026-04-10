@@ -1687,6 +1687,7 @@ function initPrepFreeChat(matId, mat) {
   PREP_CHAT_STATES[matId] = { msgs: [], working: false, currentStep: 1 };
   const state = PREP_CHAT_STATES[matId];
   const welcome = `Welcome! Let's prepare for your class together. We'll work through 4 stages. First you share your idea, then I'll give feedback based on the material to help you improve. Let's start with Stage 1 — Self-Explanation. What are the main points of the preparation material? Please summarise them in your own words.`;
+  state.msgs.push({ role: 'ai', text: welcome });
   renderPrepFreeChatMsgs(matId);
   renderPrepSteps(1);
   const clearBtn = document.getElementById('prep-chat-clear-btn');
@@ -1792,9 +1793,13 @@ async function sendPrepFreeChat() {
   After the student's second attempt, give a short acknowledgment, confirm completion ("✓ Stage X complete!"), and immediately start the next stage. No third rounds. Do not score Round 2.
   # REHEARSAL SUMMARY
   After Stage 4: "You have completed all 4 stages. Here is your Rehearsal Summary — sentences you can use when speaking in class today:" Labels: My Summary:, My Connection:, My Opinion:, Counterargument to Consider: (1-2 sentences each).
+  # SCORING CALIBRATION
+  IMPORTANT: A one-word or vague answer like "yes", "I agree", "it's interesting" ALWAYS scores 0. 
+  Score 2 requires specific content from the material. Score 1 requires partial content. Never give Score 2 for answers under 2 sentences.
   # FORMAT AND TONE
-  - Warm, conversational prose (CEFR B1). Max 3 sentences per response (excluding Score). Total word count under 60 words. No bullet points or lists in conversation.`;
-
+  - Warm, conversational prose (CEFR B1). Max 3 sentences per response (excluding Score). Total word count under 60 words. No bullet points or lists in conversation.
+  # STEP SIGNAL
+  At the end of every response, append a step signal on a new line: [STEP:1] for Stage 1, [STEP:2] for Stage 2, [STEP:3] for Stage 3, [STEP:4] for Stage 4. Update the step number only when moving to the next stage.`;
   try {
     let reply = await claudeChat(history, system, 400);
     document.getElementById(typingId)?.remove();
