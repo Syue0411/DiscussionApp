@@ -2245,47 +2245,48 @@ function createAIBubble(classmate,text,msgId){
   let _ttsUserCancelled = false;
   function togglePlay(msgId,text){
   const g=msgGenderMap[msgId]||'m';
-  const card=document.getElementById('apc-'+msgId),dur=document.getElementById('dur-'+msgId);
+  const card=document.getElementById('apc-'+msgId);
+  const dur=document.getElementById('dur-'+msgId);
   const bars=document.querySelectorAll('#wave-'+msgId+' .wave-bar');
   const pbtn=document.getElementById('pbtn-'+msgId);
   const col=pbtn?.querySelector('svg')?.getAttribute('fill')||'#7c3aed';
   const playI=`<svg width="14" height="14" viewBox="0 0 24 24" fill="${col}" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
-  const pauseI=`<svg width="14" height="14" viewBox="0 0 24 24" fill="${col}" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+  const stopI=`<svg width="14" height="14" viewBox="0 0 24 24" fill="${col}" stroke="none"><rect x="4" y="4" width="16" height="16"/></svg>`;
+
   if(currentlyPlayingId===msgId){
-    _ttsUserCancelled = true;
+    _ttsUserCancelled=true;
     window.speechSynthesis.cancel();
-    if(window._currentUtterance) {
-      window._currentUtterance.onend = null;
-      window._currentUtterance = null;
-    }
-    setTimeout(() => window.speechSynthesis.cancel(), 50);
+    if(window._currentUtterance){window._currentUtterance.onend=null;window._currentUtterance=null;}
     clearInterval(playIntervals[msgId]);
+    bars.forEach(b=>b.classList.remove('active'));
     card?.classList.remove('playing');
     if(pbtn)pbtn.innerHTML=playI;
-    if(dur)dur.textContent='▶ Listen';
-    card?.classList.remove('playing');
-    if(pbtn)pbtn.innerHTML=playI;
-    if(dur)dur.textContent='▶ Listen';
+    if(dur)dur.textContent='↺ Replay';
     currentlyPlayingId=null;
     return;
-    currentlyPlayingId=null;return;
   }
+
   if(currentlyPlayingId){
+    _ttsUserCancelled=true;
     window.speechSynthesis.cancel();
+    if(window._currentUtterance){window._currentUtterance.onend=null;window._currentUtterance=null;}
     clearInterval(playIntervals[currentlyPlayingId]);
     document.querySelectorAll('#wave-'+currentlyPlayingId+' .wave-bar').forEach(b=>b.classList.remove('active'));
     document.getElementById('apc-'+currentlyPlayingId)?.classList.remove('playing');
     const oldDur=document.getElementById('dur-'+currentlyPlayingId);
-    if(oldDur)oldDur.textContent='▶ Listen';
+    if(oldDur)oldDur.textContent='↺ Replay';
     const oldPbtn=document.getElementById('pbtn-'+currentlyPlayingId);
     if(oldPbtn){const oc=oldPbtn.querySelector('svg')?.getAttribute('fill')||'#7c3aed';oldPbtn.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="${oc}" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;}
     currentlyPlayingId=null;
   }
+
+  _ttsUserCancelled=false;
   currentlyPlayingId=msgId;
   card?.classList.add('playing');
-  if(pbtn)pbtn.innerHTML=pauseI;
+  if(pbtn)pbtn.innerHTML=stopI;
   if(dur)dur.textContent='⏹ Stop';
   playIntervals[msgId]=setInterval(()=>bars.forEach(b=>b.classList.toggle('active',Math.random()>.5)),120);
+
   ensureVoicesReady(()=>speakText(text,g,()=>{
     clearInterval(playIntervals[msgId]);
     bars.forEach(b=>b.classList.remove('active'));
