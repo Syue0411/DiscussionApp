@@ -1816,8 +1816,6 @@ async function sendPrepFreeChat() {
   - In Round 2, always append the NEXT step signal after confirming completion
   NEVER forget to append the step signal. It must be the very last thing in your response.`;
 
-  let reply = await claudeChat(history, system, 600);
-
     // Parse and strip step signal
     const stepMatch = reply.match(/\[STEP:(\d)\]/);
     if (stepMatch) {
