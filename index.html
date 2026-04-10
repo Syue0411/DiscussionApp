@@ -2245,7 +2245,7 @@ function createAIBubble(classmate,text,msgId){
         <svg width="14" height="14" viewBox="0 0 24 24" fill="${classmate.color}" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
       </div>
       <div class="audio-waveform" id="wave-${msgId}">${makeWaveBars()}</div>
-      <span class="audio-duration" id="dur-${msgId}">▶ Listen</span>
+      <span class="audio-duration" id="dur-${msgId}"></span>
     </div>
     <button class="reveal-text-btn" onclick="revealText('${msgId}')">👁 View text</button>
     <div class="revealed-text hidden" id="rtext-${msgId}">${text}</div>
@@ -2276,7 +2276,7 @@ function createAIBubble(classmate,text,msgId){
     bars.forEach(b=>b.classList.remove('active'));
     card?.classList.remove('playing');
     if(pbtn)pbtn.innerHTML=playI;
-    if(dur)dur.textContent='↺ Replay';
+    if(dur)dur.textContent='';
     currentlyPlayingId=null;
     return;
 }
@@ -2289,7 +2289,7 @@ function createAIBubble(classmate,text,msgId){
     document.querySelectorAll('#wave-'+currentlyPlayingId+' .wave-bar').forEach(b=>b.classList.remove('active'));
     document.getElementById('apc-'+currentlyPlayingId)?.classList.remove('playing');
     const oldDur=document.getElementById('dur-'+currentlyPlayingId);
-    if(oldDur)oldDur.textContent='↺ Replay';
+    if(oldDur)oldDur.textContent='';
     const oldPbtn=document.getElementById('pbtn-'+currentlyPlayingId);
     if(oldPbtn){const oc=oldPbtn.querySelector('svg')?.getAttribute('fill')||'#7c3aed';oldPbtn.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="${oc}" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;}
     currentlyPlayingId=null;
@@ -2299,7 +2299,7 @@ function createAIBubble(classmate,text,msgId){
   currentlyPlayingId=msgId;
   card?.classList.add('playing');
   if(pbtn)pbtn.innerHTML=stopI;
-  if(dur)dur.textContent='⏹ Stop';
+  if(dur)dur.textContent='';
   playIntervals[msgId]=setInterval(()=>bars.forEach(b=>b.classList.toggle('active',Math.random()>.5)),120);
 
   ensureVoicesReady(()=>speakText(text,g,()=>{
@@ -2308,7 +2308,7 @@ function createAIBubble(classmate,text,msgId){
     if(currentlyPlayingId===msgId){
       card?.classList.remove('playing');
       if(pbtn)pbtn.innerHTML=playI;
-      if(dur)dur.textContent='↺ Replay';
+      if(dur)dur.textContent='';
       currentlyPlayingId=null;
     }
   }));
