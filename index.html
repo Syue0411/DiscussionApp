@@ -1686,7 +1686,7 @@ function initPrepFreeChat(matId, mat) {
   // Always start fresh when material is loaded/changed
   PREP_CHAT_STATES[matId] = { msgs: [], working: false, currentStep: 1 };
   const state = PREP_CHAT_STATES[matId];
-  const welcome = `Welcome! Let's prepare for your class together. We'll work through 4 stages. First you share your idea, then I'll give feedback based on the material to help you improve. Let's start with Stage 1 — Self-Explanation. What are the main points of the preparation material? Please summarise them in your own words.`;
+  const welcome = `Welcome! Let's prepare for your class together. We'll work through 4 steps. First you share your idea, then I'll give feedback based on the material to help you improve. Let's start with Step 1 — Self-Explanation. What are the main points of the preparation material? Please summarise them in your own words.`;
   state.msgs.push({ role: 'ai', text: welcome });
   renderPrepSteps(1);
   const container = document.getElementById('prep-free-chat-msgs');
@@ -1758,6 +1758,8 @@ async function sendPrepFreeChat() {
 
   const system = `# ROLE
   You are a warm, supportive AI tutor helping an international student prepare for an English-medium academic discussion.
+  # CURRENT STEP
+  You are currently on Step ${state.currentStep}. When confirming completion, always say "✓ Step ${state.currentStep} complete!" — never use a different step number.
   # CONTEXT & GROUNDING
   Material: "${mat?.title || 'Unknown'}"
   Content: ${content || 'none'}
