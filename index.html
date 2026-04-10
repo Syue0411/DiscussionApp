@@ -1688,8 +1688,10 @@ function initPrepFreeChat(matId, mat) {
   const state = PREP_CHAT_STATES[matId];
   const welcome = `Welcome! Let's prepare for your class together. We'll work through 4 stages. First you share your idea, then I'll give feedback based on the material to help you improve. Let's start with Stage 1 — Self-Explanation. What are the main points of the preparation material? Please summarise them in your own words.`;
   state.msgs.push({ role: 'ai', text: welcome });
-  renderPrepFreeChatMsgs(matId);
   renderPrepSteps(1);
+  const container = document.getElementById('prep-free-chat-msgs');
+  if(container) container.innerHTML = '';
+  appendPrepFreeMsg('ai', welcome);
   const clearBtn = document.getElementById('prep-chat-clear-btn');
   if (clearBtn) clearBtn.style.display = 'none';
 }
