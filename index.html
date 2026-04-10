@@ -1000,9 +1000,9 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
-const USERS_DB = {
-  'student@demo.com': {password:'demo1234', name:'Demo Student', role:'student'},
-  'teacher@demo.com': {password:'demo1234', name:'Demo Teacher', role:'teacher'}
+const USERS_DB = {};
+USERS_DB['student@demo.com'] = {password:'demo1234', name:'Demo Student', role:'student'};
+USERS_DB['teacher@demo.com'] = {password:'demo1234', name:'Demo Teacher', role:'teacher'};
 };
 const USER_DATA = {};
 const CLASS_DB = {};
