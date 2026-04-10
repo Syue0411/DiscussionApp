@@ -2234,8 +2234,11 @@ function createAIBubble(classmate,text,msgId){
   if(currentlyPlayingId===msgId){
     _ttsUserCancelled = true;
     window.speechSynthesis.cancel();
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.cancel(); 
+    if(window._currentUtterance) {
+      window._currentUtterance.onend = null;
+      window._currentUtterance = null;
+    }
+    setTimeout(() => window.speechSynthesis.cancel(), 50);
     clearInterval(playIntervals[msgId]);
     card?.classList.remove('playing');
     if(pbtn)pbtn.innerHTML=playI;
