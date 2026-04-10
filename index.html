@@ -2274,46 +2274,30 @@ function revealText(msgId){document.getElementById('rtext-'+msgId)?.classList.to
 // ── CHANGE 3: Gender-aware TTS with expanded voice matching ──
 function speakText(text, gender, onEnd) {
   if (!window.speechSynthesis) { if (onEnd) onEnd(); return; }
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US';
-  u.rate = 0.95;
-
-  const vs = window.speechSynthesis.getVoices();
-  if (vs.length) {
-    // Filter to English voices only
-    const enVoices = vs.filter(v => v.lang.startsWith('en'));
-
-    if (gender === 'f') {
-      // Try common female voice names across browsers/OS
-      const femalePatterns = /female|woman|zira|samantha|victoria|kate|karen|moira|fiona|veena|tessa|amelie|alice|allison|ava|evelyn|sarah|susan|lisa|emily|emma|natasha|serena|linda|olivia|chloe|claire|julia|anna|hannah/i;
-      const femaleVoice = enVoices.find(v => femalePatterns.test(v.name));
-      if (femaleVoice) {
-        u.voice = femaleVoice;
-      } else {
-        // Heuristic fallback: on many systems, index 1 or higher-indexed voices tend to be female
-        const fallback = enVoices.find(v => v.name.toLowerCase().includes('google') && !v.name.toLowerCase().includes('male'))
-          || enVoices[Math.min(1, enVoices.length - 1)];
-        if (fallback) u.voice = fallback;
-      }
-      u.pitch = 1.15; // slightly higher pitch for female voices
-    } else {
-      // Male voice patterns
-      const malePatterns = /male|man|daniel|alex|fred|jorge|lee|rishi|oliver|david|james|bruce|albert|tom|thomas|paul|george|mark|mike|michael|aaron|ryan|eric|ralph|reed|rocko|sandy|luca/i;
-      const maleVoice = enVoices.find(v => malePatterns.test(v.name));
-      if (maleVoice) {
-        u.voice = maleVoice;
-      } else {
-        // Fallback: index 0 tends to be male on most platforms
-        const fallback = enVoices[0];
-        if (fallback) u.voice = fallback;
-      }
-      u.pitch = 0.9; // slightly lower pitch for male voices
-    }
-  }
-
-  u.onend = () => { if (!_ttsUserCancelled && onEnd) onEnd(); _ttsUserCancelled = false; };
   window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(u);
+  setTimeout(() => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.95;
+    const vs = window.speechSynthesis.getVoices();
+    if (vs.length) {
+      const enVoices = vs.filter(v => v.lang.startsWith('en'));
+      if (gender === 'f') {
+        const femalePatterns = /female|woman|zira|samantha|victoria|kate|karen|moira|fiona|veena|tessa|alice|allison|ava|sarah|susan|lisa|emily|emma|serena|linda|olivia|chloe|claire|julia|anna|hannah/i;
+        const femaleVoice = enVoices.find(v => femalePatterns.test(v.name));
+        u.voice = femaleVoice || enVoices[Math.min(1, enVoices.length - 1)];
+        u.pitch = 1.15;
+      } else {
+        const malePatterns = /male|man|daniel|alex|fred|jorge|lee|oliver|david|james|bruce|albert|tom|thomas|paul|george|mark|mike|michael/i;
+        const maleVoice = enVoices.find(v => malePatterns.test(v.name));
+        u.voice = maleVoice || enVoices[0];
+        u.pitch = 0.9;
+      }
+    }
+    window._currentUtterance = u;
+    u.onend = () => { if (!_ttsUserCancelled && onEnd) onEnd(); _ttsUserCancelled = false; };
+    window.speechSynthesis.speak(u);
+  }, 100);
 }
 
 // ══════════════════════════════════════════
