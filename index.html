@@ -2243,6 +2243,11 @@ function createAIBubble(classmate,text,msgId){
     card?.classList.remove('playing');
     if(pbtn)pbtn.innerHTML=playI;
     if(dur)dur.textContent='▶ Listen';
+    card?.classList.remove('playing');
+    if(pbtn)pbtn.innerHTML=playI;
+    if(dur)dur.textContent='▶ Listen';
+    currentlyPlayingId=null;
+    return;
     currentlyPlayingId=null;return;
   }
   if(currentlyPlayingId){
@@ -2267,7 +2272,7 @@ function createAIBubble(classmate,text,msgId){
     if(currentlyPlayingId===msgId){
       card?.classList.remove('playing');
       if(pbtn)pbtn.innerHTML=playI;
-      if(dur)dur.textContent='▶ Listen';
+      if(dur)dur.textContent='↺ Replay';
       currentlyPlayingId=null;
     }
   }));
