@@ -2264,7 +2264,7 @@ function createAIBubble(classmate,text,msgId){
   currentlyPlayingId=msgId;
   card?.classList.add('playing');
   if(pbtn)pbtn.innerHTML=pauseI;
-  if(dur)dur.textContent='⏸ Playing…';
+  if(dur)dur.textContent='⏹ Stop';
   playIntervals[msgId]=setInterval(()=>bars.forEach(b=>b.classList.toggle('active',Math.random()>.5)),120);
   ensureVoicesReady(()=>speakText(text,g,()=>{
     clearInterval(playIntervals[msgId]);
