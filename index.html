@@ -2263,7 +2263,12 @@ function createAIBubble(classmate,text,msgId){
   if(currentlyPlayingId===msgId){
     _ttsUserCancelled=true;
     window.speechSynthesis.cancel();
-    if(window._currentUtterance){window._currentUtterance.onend=null;window._currentUtterance=null;}
+    window.speechSynthesis.cancel();
+    if(window._currentUtterance){
+      window._currentUtterance.onend=null;
+      window._currentUtterance.onerror=null;
+      window._currentUtterance=null;
+    }
     clearInterval(playIntervals[msgId]);
     bars.forEach(b=>b.classList.remove('active'));
     card?.classList.remove('playing');
@@ -2271,7 +2276,7 @@ function createAIBubble(classmate,text,msgId){
     if(dur)dur.textContent='↺ Replay';
     currentlyPlayingId=null;
     return;
-  }
+}
 
   if(currentlyPlayingId){
     _ttsUserCancelled=true;
@@ -2312,6 +2317,7 @@ function speakText(text, gender, onEnd) {
   if (!window.speechSynthesis) { if (onEnd) onEnd(); return; }
   window.speechSynthesis.cancel();
   setTimeout(() => {
+    if (_ttsUserCancelled) { _ttsUserCancelled = false; return; }
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-US';
     u.rate = 0.95;
@@ -2320,20 +2326,26 @@ function speakText(text, gender, onEnd) {
       const enVoices = vs.filter(v => v.lang.startsWith('en'));
       if (gender === 'f') {
         const femalePatterns = /female|woman|zira|samantha|victoria|kate|karen|moira|fiona|veena|tessa|alice|allison|ava|sarah|susan|lisa|emily|emma|serena|linda|olivia|chloe|claire|julia|anna|hannah/i;
-        const femaleVoice = enVoices.find(v => femalePatterns.test(v.name));
-        u.voice = femaleVoice || enVoices[Math.min(1, enVoices.length - 1)];
+        u.voice = enVoices.find(v => femalePatterns.test(v.name)) || enVoices[Math.min(1, enVoices.length-1)];
         u.pitch = 1.15;
       } else {
         const malePatterns = /male|man|daniel|alex|fred|jorge|lee|oliver|david|james|bruce|albert|tom|thomas|paul|george|mark|mike|michael/i;
-        const maleVoice = enVoices.find(v => malePatterns.test(v.name));
-        u.voice = maleVoice || enVoices[0];
+        u.voice = enVoices.find(v => malePatterns.test(v.name)) || enVoices[0];
         u.pitch = 0.9;
       }
     }
     window._currentUtterance = u;
-    u.onend = () => { if (!_ttsUserCancelled && onEnd) onEnd(); _ttsUserCancelled = false; };
+    u.onend = () => {
+      if (!_ttsUserCancelled && onEnd) onEnd();
+      _ttsUserCancelled = false;
+      window._currentUtterance = null;
+    };
+    u.onerror = () => {
+      _ttsUserCancelled = false;
+      window._currentUtterance = null;
+    };
     window.speechSynthesis.speak(u);
-  }, 100);
+  }, 150);
 }
 
 // ══════════════════════════════════════════
