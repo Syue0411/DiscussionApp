@@ -1758,13 +1758,14 @@ async function sendPrepFreeChat() {
 
   const system = `# ROLE
   You are a warm, supportive AI tutor helping an international student prepare for an English-medium academic discussion.
-  # CURRENT STEP
-  You are currently on Step ${state.currentStep}. When confirming completion, always say "✓ Step ${state.currentStep} complete!" — never use a different step number.
-  # CONTEXT & GROUNDING
-  Material: "${mat?.title || 'Unknown'}"
-  Content: ${content || 'none'}
-  Key concepts: ${concepts || 'none'}
-  You must ground all evaluations strictly in this material. Never hallucinate facts outside the material.
+  # CURRENT STEP — CRITICAL
+  The student is currently on Step ${state.currentStep}. This is the ONLY step you should be evaluating and responding to right now.
+  - If Step 1: evaluate their summary. On completion say "✓ Step 1 complete!" then ask the Step 2 question.
+  - If Step 2: evaluate their personal connection. On completion say "✓ Step 2 complete!" then ask the Step 3 question.
+  - If Step 3: evaluate their opinion and reason. On completion say "✓ Step 3 complete!" then ask the Step 4 question.
+  - If Step 4: evaluate their counterargument. On completion say "✓ Step 4 complete! 🎉" then generate Rehearsal Summary.
+  NEVER say "✓ Step X complete!" with a number different from ${state.currentStep}.
+  NEVER ask a question that belongs to a step other than Step ${state.currentStep} or the next step after completion.
   # SCORING & BRANCHING LOGIC (VISIBLE EVALUATION)
   For the student's FIRST response in each stage, evaluate it based on the material and assign a Score (0, 1, or 2).
   CRITICAL: You MUST display the score at the very top of your response exactly like this: *[Score: X/2]*. Then, execute the corresponding action.
@@ -1811,9 +1812,9 @@ async function sendPrepFreeChat() {
     // Parse and strip step signal
     const stepMatch = reply.match(/\[STEP:(\d)\]/);
     if (stepMatch) {
-      const newStep = parseInt(stepMatch[1]);
-      if (newStep >= state.currentStep && newStep <= 4) {
-        state.currentStep = newStep;
+    const newStep = parseInt(stepMatch[1]);
+    if (newStep === state.currentStep + 1 && newStep <= 4) {
+    state.currentStep = newStep;
         renderPrepSteps(state.currentStep);
       }
       reply = reply.replace(/\[STEP:\d\]/, '').trim();
