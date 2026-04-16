@@ -1846,8 +1846,9 @@ async function sendPrepFreeChat() {
     sendBtn.disabled = false;
     sendBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send';
   }
-  document.getElementById('prep-chat-clear-btn').style.display = '';
-  inp.focus();
+  const clearBtn2 = document.getElementById('prep-chat-clear-btn');
+  if (clearBtn2) clearBtn2.style.display = '';
+  if (inp) inp.focus();
 }
 
 function clearPrepChat() {
@@ -1857,7 +1858,8 @@ function clearPrepChat() {
   const d = ud();
   const mat = d.materials.find(m => m.id === matId);
   initPrepFreeChat(matId, mat);
-  document.getElementById('prep-chat-clear-btn').style.display = 'none';
+  const cb = document.getElementById('prep-chat-clear-btn');
+  if (cb) cb.style.display = 'none';
 }
 
 // ══════════════════════════════════════════
